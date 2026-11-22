@@ -22,9 +22,6 @@ create table if not exists public.game_room_members (
   primary key (room_id, user_id)
 );
 
-create index if not exists game_room_members_user_idx
-  on public.game_room_members(user_id, room_id);
-
 alter table public.game_rooms enable row level security;
 alter table public.game_room_members enable row level security;
 
