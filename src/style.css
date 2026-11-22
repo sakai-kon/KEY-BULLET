@@ -1116,6 +1116,7 @@ h1 span { text-shadow: none; }
 
 /* Clear, comfortably spaced furigana for Japanese typing prompts. */
 .game-screen .prompt-display.has-furigana {
+  display: block;
   min-height: clamp(70px, 10.5svh, 92px);
   padding: 17px 4px 9px;
   line-height: 2.05;
