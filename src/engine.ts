@@ -134,7 +134,7 @@ export class GameEngine {
     this.stage = 1;
     this.wave = resume?.wave ?? 1;
     this.segment = 1;
-    this.segments = mode === 'STORY' ? 3 : 2;
+    this.segments = this.onlineMode === 'raid' ? 1 : mode === 'STORY' ? 3 : 2;
     this.hpMax = SEGMENT_HP;
     this.hp = SEGMENT_HP;
     this.lives = resume?.lives ?? 3;
@@ -181,7 +181,7 @@ export class GameEngine {
   }
 
   applyOnlineHit(): void {
-    if (this.onlineMode !== 'pvp' || !this.active || this.invulnerable > 0) return;
+    if (this.onlineMode !== 'pvp' || !this.active) return;
     this.lives = Math.max(0, this.lives - 1);
     this.invulnerable = 0.65;
     this.hitFlash = 0.28;
@@ -296,7 +296,7 @@ export class GameEngine {
     const fireInterval = Math.max(0.075, 0.2 - this.power * 0.027);
     while (this.shotTimer >= fireInterval) {
       this.shotTimer -= fireInterval;
-      if (this.onlineMode !== 'raid') this.hp -= (1.3 + this.power * 1.6) * fireInterval;
+      if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval;
       this.score += 1;
       this.particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 16, y: 186 + Math.random() * 15, vx: 0, vy: -130, life: 0.23, maxLife: 0.23, color: '#00F0FF', size: 3 + this.power });
     }
@@ -495,7 +495,8 @@ export class GameEngine {
 
   private drawBoss(): void {
     if (!this.active && this.reason === 'clear') return;
-    const form = this.hp <= 34 ? 2 : this.hp <= 67 ? 1 : 0;
+    const hpRatio = this.hpMax > 100 ? this.hp / this.hpMax : this.hp / 100;
+    const form = hpRatio <= 0.34 ? 2 : hpRatio <= 0.67 ? 1 : 0;
     const sprite = BOSS_SPRITES[form] ?? BOSS_SPRITES[0];
     const size = 112 + Math.sin(this.frame * 3) * 3;
     this.ctx.save();
