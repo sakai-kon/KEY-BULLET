@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.4.4` (Beta)**
+**Current version: `v0.5.0` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -21,7 +21,7 @@
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
 - **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Sign-in and sign-up always return to the GitHub Pages project path. Guest play remains available.
-- **Admin console** — a Clerk public-metadata role gates global announcements, drafts, publishing, editing, deletion, and maintenance notices; Supabase RLS enforces write permissions too.
+- **Admin control center** — a Clerk admin role gates global maintenance, STORY / ENDLESS / ONLINE availability, optional global difficulty overrides, custom prompt CRUD and publishing, announcements, multiplayer room monitoring, and local admin test assists. Supabase RLS enforces every write and only allows cleanup of waiting or finished rooms.
 - **Admin Auto Pilot** — administrator-only auto typing and predictive bullet dodging for STORY / ENDLESS. Both assists are automatically disabled during PVP and Link Raid.
 - **Online multiplayer beta** — room-code lobbies, 1v1 PVP, and 2–4 player Link Raids using private Supabase Realtime channels. Guest play remains local.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
@@ -76,6 +76,21 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - The database stores Clerk IDs as text; it no longer references `auth.users`.
 - The browser uses only the Supabase publishable key. Never add a `service_role` or secret key to the frontend.
 
+## Administrator Control Center
+
+The **ADMIN** button is visible only when the signed-in Clerk user's public metadata contains `{ "role": "admin" }`. The control center includes:
+
+- **Overview** — counts of custom prompts, announcements and active multiplayer rooms, plus current service state.
+- **Game settings** — global maintenance mode and public maintenance message, STORY / ENDLESS / ONLINE availability, and an optional NORMAL / EASY difficulty override.
+- **Custom prompts** — create, edit, publish, pause or delete Japanese prompts in SHORT TEXT, DIALOGUE and LONG TEXT. Published prompts are added to every player's prompt pool after the next content refresh.
+- **Announcements** — create drafts, publish, edit, unpublish and delete public notices.
+- **Room monitor** — inspect room code, mode, state and creation time. Only waiting or finished rooms can be removed; rooms in an active match are protected.
+- **Admin assists** — local auto typing and predictive auto dodge for solo testing. Both are disabled during multiplayer.
+
+Global settings and published prompt data refresh automatically in clients. Maintenance mode blocks new runs for regular players while showing the configured message; an administrator can still enter for verification. Account passwords, email addresses, Clerk secret keys and Supabase service keys are never exposed in this client-side panel. User account administration remains in the Clerk Dashboard.
+
+The admin data tables use explicit Data API grants and Row Level Security. Regular players can read public settings and active custom prompts, but only a Clerk admin token carrying the public `metadata.role = admin` claim can change them.
+
 ## Administrator Auto Pilot
 
 The ADMIN panel includes two local gameplay assists. **Auto typing** enters the current prompt's accepted answer at a steady pace and submits it. **Auto dodge** evaluates nearby bullet trajectories and moves toward a safer path. These controls are only shown to Clerk administrators and automatically stop when administrator access is removed. Both features are disabled during PVP and Link Raid; they do not affect multiplayer matches.
@@ -113,7 +128,7 @@ src/
   main.ts         UI, input wiring, menus, stats and modal behavior
   persistence.ts  Local saves and transfer-code import/export
   cloud.ts        Clerk authentication and Supabase cloud synchronization
-  admin.ts        Clerk-role-gated announcement and maintenance controls
+  admin.ts        Clerk-role-gated game settings, custom prompts, announcements and room operations
   multiplayer.ts  Private Realtime lobby, PVP hits, and shared Link Raid HP
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
