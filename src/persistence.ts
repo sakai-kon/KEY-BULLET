@@ -231,9 +231,9 @@ export async function exportTransferCode(stats: CareerStats, profile = loadUserP
 export async function importTransferCode(code: string, credential = ''): Promise<CareerStats> {
   const trimmed = code.trim();
   if (!trimmed.startsWith('KB-BETA-')) throw new Error('引き継ぎコードの形式が違います。');
-  let payload: Partial<TransferPayloadV1 & TransferPayloadV2>;
+  let payload: { app?: unknown; version?: unknown; stats?: unknown; byUsername?: EncryptedBlob; byPasscode?: EncryptedBlob; username?: string };
   try {
-    payload = JSON.parse(decodeBase64ToUtf8(trimmed.slice('KB-BETA-'.length))) as Partial<TransferPayloadV1 & TransferPayloadV2>;
+    payload = JSON.parse(decodeBase64ToUtf8(trimmed.slice('KB-BETA-'.length))) as { app?: unknown; version?: unknown; stats?: unknown; byUsername?: EncryptedBlob; byPasscode?: EncryptedBlob; username?: string };
   } catch {
     throw new Error('引き継ぎコードを読み取れません。');
   }
