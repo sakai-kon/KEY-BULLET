@@ -135,7 +135,7 @@ h1 span { color: var(--cyan); text-shadow: 0 0 24px rgba(0,240,255,.22); }
 .genre-chip small { color: #607687; font-size: 8px; }
 .genre-chip.selected, .genre-chip:hover { border-color: rgba(0,240,255,.5); background: rgba(0,240,255,.055); }
 .genre-chip.selected strong { color: var(--cyan); }
-.genre-chip:last-child { grid-column: span 2; min-height: 48px; }
+.genre-chip:last-child { grid-column: auto; min-height: 54px; }
 
 .controls-panel { padding-bottom: 12px; }
 .control-line { min-height: 27px; display: flex; align-items: center; gap: 4px; padding: 3px 13px; color: #8BA0AF; font-size: 9px; }
