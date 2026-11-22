@@ -935,3 +935,18 @@ h1 span { text-shadow: none; }
     min-height: 42px;
   }
 }
+
+
+/* Immediate, readable feedback for committed input errors. */
+.input-wrap.has-error {
+  border-color: rgba(255, 105, 125, .9);
+  box-shadow: 0 0 0 2px rgba(255, 75, 105, .09), inset 0 0 18px rgba(255, 55, 85, .06);
+}
+.input-wrap.has-error #typing-input {
+  color: #FF8798;
+  caret-color: #FF8798;
+}
+#typing-feedback.is-error {
+  color: #FF8798;
+  font-weight: 700;
+}
