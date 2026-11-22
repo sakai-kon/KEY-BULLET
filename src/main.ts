@@ -475,7 +475,7 @@ function stopAutoTyping(): void {
 
 function startAutoTyping(): void {
   stopAutoTyping();
-  if (!adminAssistAccess || !adminAutoTyping || onlineMatchMode || !prompt || currentPhase !== 'typing') return;
+  if (!adminAssistAccess || !adminAutoTyping || !prompt || currentPhase !== 'typing') return;
 
   const targetPrompt = prompt;
   const characters = Array.from(targetPrompt.answers[0] ?? '');
@@ -490,7 +490,6 @@ function startAutoTyping(): void {
     if (
       !adminAssistAccess ||
       !adminAutoTyping ||
-      onlineMatchMode ||
       prompt !== targetPrompt ||
       currentPhase !== 'typing' ||
       !lastSnapshot?.active
@@ -509,7 +508,7 @@ function startAutoTyping(): void {
       autoTypingInProgress = false;
       autoTypingSubmitTimer = window.setTimeout(() => {
         autoTypingSubmitTimer = 0;
-        if (adminAssistAccess && adminAutoTyping && !onlineMatchMode && prompt === targetPrompt && currentPhase === 'typing') {
+        if (adminAssistAccess && adminAutoTyping && prompt === targetPrompt && currentPhase === 'typing') {
           ($('#typing-form') as HTMLFormElement).requestSubmit();
         }
       }, 120);
@@ -545,7 +544,7 @@ function setupNewPrompt(): void {
   $('#metric-misses').textContent = '00';
   updateTypingPanelState();
   requestAnimationFrame(() => $('#typing-input').focus());
-  if (adminAssistAccess && adminAutoTyping && !onlineMatchMode) {
+  if (adminAssistAccess && adminAutoTyping) {
     window.setTimeout(startAutoTyping, 280);
   }
 }
@@ -705,7 +704,7 @@ function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   stopAutoTyping();
   game.setOnlineMode(onlineMatchMode);
   game.setDifficulty(onlineMatchMode === null ? currentDifficulty : 'normal');
-  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
   $('#result-retry').toggleAttribute('hidden', onlineMatchMode !== null);
   bestAccuracy = 0;
   void audio.start('typing');
@@ -1032,9 +1031,8 @@ function updateClock(): void {
 window.addEventListener('key-bullet:online-start', (event) => {
   const detail = (event as CustomEvent<{ mode: 'pvp' | 'raid' }>).detail;
   if (!detail || !['pvp', 'raid'].includes(detail.mode)) return;
-  stopAutoTyping();
-  game.setAutoDodgeEnabled(false);
   onlineMatchMode = detail.mode;
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
   beginRun('STORY');
   if (detail.mode === 'raid') game.setOnlineBossHp(1400, 1400);
   $('#typing-feedback').textContent = detail.mode === 'pvp'
@@ -1126,11 +1124,6 @@ window.addEventListener('key-bullet:admin-assist', (event) => {
   const detail = (event as CustomEvent<{ autoTyping?: boolean; autoDodge?: boolean }>).detail;
   adminAutoTyping = detail?.autoTyping === true;
   adminAutoDodge = detail?.autoDodge === true;
-  if (onlineMatchMode) {
-    stopAutoTyping();
-    game.setAutoDodgeEnabled(false);
-    return;
-  }
   game.setAutoDodgeEnabled(adminAutoDodge);
   if (adminAutoTyping && currentPhase === 'typing' && lastSnapshot?.active) {
     startAutoTyping();
