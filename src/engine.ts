@@ -75,6 +75,7 @@ export class GameEngine {
   private bombFlash = 0;
   private clearFlash = 0;
   private hitFlash = 0;
+  private screenShake = 0;
   private reason: EndReason | null = null;
   private bullets: Bullet[] = [];
   private particles: Particle[] = [];
@@ -209,6 +210,7 @@ export class GameEngine {
     this.lives = Math.max(0, this.lives - 1);
     this.invulnerable = 0.65;
     this.hitFlash = 0.28;
+    this.screenShake = Math.max(this.screenShake, 7);
     this.spawnParticles(this.player.x, this.player.y, 18, '#FF2A5F');
     if (this.lives <= 0) {
       this.finish('gameover');
@@ -248,7 +250,8 @@ export class GameEngine {
     if (!this.active || this.phase !== 'bullet' || this.bombs <= 0) return false;
     this.bombs--;
     this.bullets = [];
-    this.bombFlash = 0.65;
+    this.bombFlash = 0.78;
+    this.screenShake = Math.max(this.screenShake, 10);
     this.invulnerable = Math.max(this.invulnerable, 1.25);
     this.score += 250;
     this.spawnParticles(this.player.x, this.player.y, 34, '#00F0FF');
@@ -298,6 +301,7 @@ export class GameEngine {
     if (this.phase !== 'bullet') return;
 
     this.phaseElapsed += dt;
+    this.screenShake = Math.max(0, this.screenShake - dt * 22);
     const slow = this.keys.has('shift');
     let speed = this.isEasyMode ? (slow ? 125 : 250) : (slow ? 118 : 275);
     let dx = 0; let dy = 0;
@@ -417,6 +421,7 @@ export class GameEngine {
         this.lives--;
         this.invulnerable = this.isEasyMode ? 2.8 : 1.25;
         this.hitFlash = 0.28;
+        this.screenShake = Math.max(this.screenShake, 7);
         this.spawnParticles(this.player.x, this.player.y, 18, '#FF2A5F');
         if (this.lives <= 0) { this.finish('gameover'); return; }
       } else if (distance < hitDistance + 13 && !bullet.grazed) {
@@ -466,6 +471,7 @@ export class GameEngine {
 
   private completeSegment(): void {
     this.clearFlash = 0.8;
+    this.screenShake = Math.max(this.screenShake, 5);
     this.bullets = [];
     this.score += 500 + this.stage * 100 + this.wave * 50;
     this.spawnParticles(this.bossX(), this.bossY(), 48, '#00F0FF');
@@ -545,20 +551,27 @@ export class GameEngine {
     ctx.fillStyle = '#080C14';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     this.drawBackground();
+
+    // Shake only the action field; keeping the HUD steady prevents visual fatigue.
+    if (this.screenShake > 0.1) {
+      const shakeX = Math.sin(this.frame * 83) * this.screenShake;
+      const shakeY = Math.cos(this.frame * 71) * this.screenShake * 0.55;
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+    } else {
+      ctx.save();
+    }
     this.drawBoss();
+    this.drawBarrageTelegraph();
     this.drawDangerOrbs();
     this.drawBullets();
     this.drawShots();
     this.drawPlayer();
     this.drawParticles();
+    ctx.restore();
+
     this.drawCanvasHud();
-    if (this.bombFlash > 0) {
-      ctx.fillStyle = `rgba(131,187,192,${this.bombFlash * 0.09})`;
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      ctx.strokeStyle = `rgba(174,215,216,${this.bombFlash * 0.52})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(this.player.x, this.player.y, (1 - this.bombFlash) * 340, 0, Math.PI * 2); ctx.stroke();
-    }
+    if (this.bombFlash > 0) this.drawBombEffect();
     if (this.hitFlash > 0) {
       ctx.fillStyle = `rgba(199,124,141,${this.hitFlash * 0.08})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -574,8 +587,15 @@ export class GameEngine {
     ctx.strokeStyle = 'rgba(131,187,192,0.028)'; ctx.lineWidth = 1;
     for (let x = 0; x <= WIDTH; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, HEIGHT); ctx.stroke(); }
     for (let y = 0; y <= HEIGHT; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WIDTH, y); ctx.stroke(); }
+    // A soft, slow-moving bloom gives the playfield depth without obscuring bullets.
+    const bloom = ctx.createRadialGradient(WIDTH / 2, 190, 12, WIDTH / 2, 190, 360);
+    bloom.addColorStop(0, 'rgba(57,112,139,0.10)');
+    bloom.addColorStop(1, 'rgba(8,12,20,0)');
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
     for (const star of this.stars) {
-      ctx.fillStyle = `rgba(194,246,255,${star.alpha})`;
+      const twinkle = 0.72 + Math.sin(this.frame * 2.1 + star.x * 0.03) * 0.28;
+      ctx.fillStyle = `rgba(194,246,255,${star.alpha * twinkle})`;
       ctx.fillRect(star.x, star.y, star.size, star.size);
     }
     ctx.restore();
@@ -590,17 +610,65 @@ export class GameEngine {
     const hpRatio = this.hpMax > 100 ? this.hp / this.hpMax : this.hp / 100;
     const form = hpRatio <= 0.34 ? 2 : hpRatio <= 0.67 ? 1 : 0;
     const sprite = BOSS_SPRITES[form] ?? BOSS_SPRITES[0];
-    const size = 112 + Math.sin(this.frame * 3) * 3;
-    this.ctx.save();
-    this.ctx.shadowBlur = 9;
-    this.ctx.shadowColor = form === 0 ? '#83BBC0' : '#C77C8D';
-    drawPixelSprite(this.ctx, sprite, this.bossX(), this.bossY(), size, this.frame);
-    this.ctx.restore();
-    this.ctx.save();
-    this.ctx.strokeStyle = form === 0 ? 'rgba(131,187,192,.24)' : 'rgba(199,124,141,.27)';
-    this.ctx.lineWidth = 1;
-    this.ctx.beginPath(); this.ctx.ellipse(this.bossX(), this.bossY(), 84 + Math.sin(this.frame * 1.4) * 5, 58 + Math.cos(this.frame * 1.4) * 4, 0, 0, Math.PI * 2); this.ctx.stroke();
-    this.ctx.restore();
+    const pulse = 1 + Math.sin(this.frame * 4.2) * 0.035;
+    const size = (112 + Math.sin(this.frame * 3) * 3) * pulse;
+    const color = form === 0 ? '#83BBC0' : '#C77C8D';
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.translate(this.bossX(), this.bossY());
+    ctx.rotate(this.frame * (form === 2 ? -0.22 : 0.16));
+    ctx.strokeStyle = form === 0 ? 'rgba(131,187,192,.18)' : 'rgba(199,124,141,.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 10]);
+    ctx.beginPath(); ctx.ellipse(0, 0, 94, 64, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    for (let i = 0; i < 4; i++) {
+      const angle = this.frame * (i % 2 === 0 ? 0.7 : -0.9) + (i / 4) * Math.PI * 2;
+      const x = Math.cos(angle) * (91 + (i % 2) * 9);
+      const y = Math.sin(angle) * (57 + (i % 2) * 7);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.45 + Math.sin(this.frame * 3 + i) * 0.18;
+      ctx.shadowColor = color; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(x, y, 2.4 + (i % 2), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = form === 0 ? 'rgba(131,187,192,.34)' : 'rgba(199,124,141,.38)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(this.bossX(), this.bossY(), 84 + Math.sin(this.frame * 1.4) * 5, 58 + Math.cos(this.frame * 1.4) * 4, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    drawPixelSprite(ctx, sprite, this.bossX(), this.bossY(), size, this.frame);
+    ctx.restore();
+  }
+
+  private drawBarrageTelegraph(): void {
+    if (!this.active || this.phase !== 'bullet' || this.spawnTimer <= 0 || this.spawnTimer > 0.42) return;
+    const ctx = this.ctx;
+    const bx = this.bossX();
+    const by = this.bossY() + 18;
+    const aimed = Math.atan2(this.player.y - by, this.player.x - bx);
+    const pattern = this.barrageIndex;
+    const sweep = Math.sin(pattern * 0.72) * 0.34;
+    const spread = Math.min(2.7, 2.2 + Math.min(5, this.wave - 1) * 0.08 + this.danger * 0.025);
+    const alpha = (1 - this.spawnTimer / 0.42) * 0.12;
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(255,126,157,${alpha})`;
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4 - 0.5;
+      const angle = aimed + sweep + t * spread;
+      const length = 520;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + Math.cos(angle) * length, by + Math.sin(angle) * length);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   private drawDangerOrbs(): void {
@@ -617,11 +685,39 @@ export class GameEngine {
 
   private drawBullets(): void {
     const ctx = this.ctx;
+    // Draw directional trails first so the bright bullet heads remain crisp and readable.
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const bullet of this.bullets) {
+      const speed = Math.hypot(bullet.vx, bullet.vy);
+      const tail = Math.min(23, 8 + speed * 0.045);
+      const length = Math.max(0.001, speed);
+      const dx = (bullet.vx / length) * tail;
+      const dy = (bullet.vy / length) * tail;
+      const gradient = ctx.createLinearGradient(bullet.x - dx, bullet.y - dy, bullet.x, bullet.y);
+      gradient.addColorStop(0, 'rgba(199,124,141,0)');
+      gradient.addColorStop(1, 'rgba(255,151,178,.58)');
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = Math.max(2, bullet.r * 1.15);
+      ctx.beginPath();
+      ctx.moveTo(bullet.x - dx, bullet.y - dy);
+      ctx.lineTo(bullet.x, bullet.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
     for (const bullet of this.bullets) {
       ctx.save();
-      ctx.shadowColor = '#C77C8D'; ctx.shadowBlur = 5;
-      ctx.fillStyle = '#C77C8D'; ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#F0DFE3'; ctx.beginPath(); ctx.arc(bullet.x - 1, bullet.y - 1, Math.max(1, bullet.r * 0.33), 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#FF789E';
+      ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.r * 1.75, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = '#FF789E'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#C77C8D';
+      ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#F0DFE3';
+      ctx.beginPath(); ctx.arc(bullet.x - bullet.r * 0.22, bullet.y - bullet.r * 0.25, Math.max(1.2, bullet.r * 0.34), 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
   }
@@ -629,35 +725,117 @@ export class GameEngine {
   private drawShots(): void {
     if (this.phase !== 'bullet') return;
     const ctx = this.ctx;
+    const pulse = 0.82 + Math.sin(this.frame * 18) * 0.18;
     const beamWidth = 2 + this.power * 2.1;
-    const alpha = 0.14 + this.power * 0.055;
+    const alpha = (0.14 + this.power * 0.055) * pulse;
+    const top = 184;
+    const height = Math.max(0, this.player.y - top - 12);
     ctx.save();
-    const beam = ctx.createLinearGradient(this.player.x - beamWidth, 0, this.player.x + beamWidth, 0);
-    beam.addColorStop(0, 'rgba(0,240,255,0)'); beam.addColorStop(0.5, `rgba(0,240,255,${alpha})`); beam.addColorStop(1, 'rgba(0,240,255,0)');
-    ctx.fillStyle = beam; ctx.fillRect(this.player.x - beamWidth * 3, 188, beamWidth * 6, this.player.y - 188);
+
+    // Wide atmospheric glow.
+    const glow = ctx.createLinearGradient(this.player.x, top, this.player.x, this.player.y);
+    glow.addColorStop(0, 'rgba(0,240,255,0)');
+    glow.addColorStop(0.72, `rgba(0,240,255,${alpha * 0.28})`);
+    glow.addColorStop(1, `rgba(0,240,255,${alpha * 0.72})`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(this.player.x - beamWidth * 4, top, beamWidth * 8, height);
+
+    // Bright core and two subtle side lances.
+    ctx.shadowColor = '#00F0FF'; ctx.shadowBlur = 13;
+    ctx.fillStyle = `rgba(0,240,255,${alpha})`;
+    ctx.fillRect(this.player.x - beamWidth * 0.62, top, beamWidth * 1.24, height);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(225,255,255,.78)';
+    ctx.fillRect(this.player.x - 0.65, top + 12, 1.3, height * 0.92);
+    for (const offset of [-beamWidth * 2.2, beamWidth * 2.2]) {
+      ctx.fillStyle = `rgba(0,190,215,${alpha * 0.42})`;
+      ctx.fillRect(this.player.x + offset - 0.8, top + 18, 1.6, height * 0.82);
+    }
     ctx.restore();
   }
 
   private drawPlayer(): void {
     const ctx = this.ctx;
     if (this.invulnerable > 0 && Math.floor(this.frame * 18) % 2 === 0) return;
-    ctx.save(); ctx.shadowColor = '#83BBC0'; ctx.shadowBlur = 7;
-    drawPixelSprite(ctx, PLAYER_SPRITE, this.player.x, this.player.y, 30, this.frame);
+    const enginePulse = 0.7 + Math.sin(this.frame * 25) * 0.3;
+    ctx.save();
+    const exhaust = ctx.createRadialGradient(this.player.x, this.player.y + 12, 1, this.player.x, this.player.y + 12, 22);
+    exhaust.addColorStop(0, `rgba(201,255,255,${0.42 * enginePulse})`);
+    exhaust.addColorStop(0.35, `rgba(0,210,230,${0.2 * enginePulse})`);
+    exhaust.addColorStop(1, 'rgba(0,210,230,0)');
+    ctx.fillStyle = exhaust;
+    ctx.beginPath(); ctx.ellipse(this.player.x, this.player.y + 12, 13, 20 + enginePulse * 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#83BBC0'; ctx.shadowBlur = 14;
+    drawPixelSprite(ctx, PLAYER_SPRITE, this.player.x, this.player.y, 32, this.frame);
     ctx.restore();
-    if (this.keys.has('shift')) {
-      ctx.strokeStyle = 'rgba(131,187,192,.52)'; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 6.4, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#DDEBEC'; ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 1.7, 0, Math.PI * 2); ctx.fill();
+
+    const focused = this.keys.has('shift') || this.autoDodgeEnabled;
+    if (focused) {
+      const radius = 10 + Math.sin(this.frame * 8) * 0.8;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(174,235,239,.58)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(this.player.x, this.player.y, radius, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 4; i++) {
+        const angle = this.frame * 0.55 + i * Math.PI / 2;
+        const inner = radius + 3;
+        const outer = radius + 7;
+        ctx.beginPath();
+        ctx.moveTo(this.player.x + Math.cos(angle) * inner, this.player.y + Math.sin(angle) * inner);
+        ctx.lineTo(this.player.x + Math.cos(angle) * outer, this.player.y + Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#E8FFFF';
+      ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     }
   }
 
   private drawParticles(): void {
     const ctx = this.ctx;
+    ctx.save();
+    ctx.lineCap = 'round';
     for (const p of this.particles) {
-      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-      ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+      const alpha = Math.max(0, p.life / p.maxLife);
+      const speed = Math.hypot(p.vx, p.vy);
+      ctx.globalAlpha = alpha * 0.48;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = Math.max(1, p.size * 0.55);
+      ctx.beginPath();
+      ctx.moveTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = Math.min(9, p.size * 2.2);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.8, p.size * (0.55 + alpha * 0.2)), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+
+  private drawBombEffect(): void {
+    const ctx = this.ctx;
+    const progress = 1 - this.bombFlash / 0.78;
+    const radius = progress * 410;
+    ctx.save();
+    ctx.fillStyle = `rgba(131,187,192,${this.bombFlash * 0.07})`;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    for (let i = 0; i < 3; i++) {
+      const ringProgress = Math.max(0, Math.min(1, progress - i * 0.12));
+      const ringRadius = ringProgress * 410;
+      ctx.globalAlpha = Math.max(0, (1 - ringProgress) * 0.55);
+      ctx.strokeStyle = i === 0 ? '#E8FFFF' : '#83BBC0';
+      ctx.lineWidth = i === 0 ? 3 : 1.5;
+      ctx.shadowColor = '#83BBC0'; ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(this.player.x, this.player.y, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   private drawCanvasHud(): void {
