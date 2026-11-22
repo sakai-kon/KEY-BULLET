@@ -150,6 +150,8 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   let matchActive = false;
   let raidHp = RAID_HP_MAX;
   let lastAttackAt = 0;
+  const lastIncomingPvpAttackAt = new Map<string, number>();
+  const lastRaidAttackAt = new Map<string, number>();
 
   const setStatus = (message: string, isError = false): void => {
     const status = $('#kb-online-status');
@@ -289,6 +291,9 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
       .on('broadcast', { event: 'pvp-attack' }, ({ payload }) => {
         const attackerId = typeof payload?.user_id === 'string' ? payload.user_id : '';
         if (!identity || attackerId === identity.id || !members.some((member) => member.user_id === attackerId)) return;
+        const now = Date.now();
+        if (now - (lastIncomingPvpAttackAt.get(attackerId) ?? 0) < 300) return;
+        lastIncomingPvpAttackAt.set(attackerId, now);
         emit('key-bullet:online-pvp-hit', { attackerId });
       })
       .on('broadcast', { event: 'player-out' }, ({ payload }) => {
@@ -373,13 +378,17 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
 
   async function processRaidAttack(payload: Record<string, unknown>): Promise<void> {
     if (!room || !identity || room.host_user_id !== identity.id) return;
+    const attackerId = String(payload.user_id ?? identity.id);
+    const now = Date.now();
+    if (now - (lastRaidAttackAt.get(attackerId) ?? 0) < 300) return;
+    lastRaidAttackAt.set(attackerId, now);
     const power = Math.max(0.65, Math.min(3.4, Number(payload.power) || 0.65));
     const chars = Math.max(1, Math.min(80, Math.floor(Number(payload.chars) || 1)));
     const damage = Math.round(8 + power * 18 + chars * 0.3);
     raidHp = Math.max(0, raidHp - damage);
     updateHud('LINK RAID / LIVE', `BOSS HP ${Math.ceil(raidHp)} / ${RAID_HP_MAX}`, raidHp / RAID_HP_MAX);
     emit('key-bullet:online-raid-state', { hp: raidHp, maxHp: RAID_HP_MAX });
-    await send('raid-state', { hp: raidHp, damage, user_id: String(payload.user_id ?? identity.id) });
+    await send('raid-state', { hp: raidHp, damage, user_id: attackerId });
     if (raidHp <= 0) {
       await send('raid-clear', { cleared_by: String(payload.user_id ?? identity.id) });
       emit('key-bullet:online-result', { result: 'raid-clear', mode: 'raid' });
