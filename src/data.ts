@@ -49,9 +49,9 @@ export function getGenreLabel(genre: Genre): string {
 
 /** Normalize text for comparison after IME composition has been committed. */
 export function normalizeTyping(value: string, isCode = false): string {
-  if (isCode) return value.replace(/\\s+/g, ' ').trim();
+  if (isCode) return value.replace(/\s+/g, ' ').trim();
   // Keep Japanese spaces and punctuation significant; NFKC only unifies compatible forms.
-  return value.normalize('NFKC').replace(/\\r\\n?/g, '\\n');
+  return value.normalize('NFKC').replace(/\r\n?/g, '\n');
 }
 
 export function bestPrefixLength(input: string, answers: string[], isCode = false): number {
