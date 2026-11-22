@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.4.0` (Beta)**
+**Current version: `v0.4.1` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -21,6 +21,7 @@
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
 - **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Guest play remains available.
 - **Admin console** — a Clerk public-metadata role gates global announcements, drafts, publishing, editing, deletion, and maintenance notices; Supabase RLS enforces write permissions too.
+- **Admin Auto Pilot** — administrator-only auto typing and predictive bullet dodging for STORY / ENDLESS. Both assists are automatically disabled during PVP and Link Raid.
 - **Online multiplayer beta** — room-code lobbies, 1v1 PVP, and 2–4 player Link Raids using private Supabase Realtime channels. Guest play remains local.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
 
@@ -73,6 +74,10 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - The `public.game_announcements` table is created by the tracked migration. Published notices are readable publicly; only tokens whose `metadata.role` is `admin` can create, edit, or delete notices.
 - The database stores Clerk IDs as text; it no longer references `auth.users`.
 - The browser uses only the Supabase publishable key. Never add a `service_role` or secret key to the frontend.
+
+## Administrator Auto Pilot
+
+The ADMIN panel includes two local gameplay assists. **Auto typing** enters the current prompt's accepted answer at a steady pace and submits it. **Auto dodge** evaluates nearby bullet trajectories and moves toward a safer path. These controls are only shown to Clerk administrators and automatically stop when administrator access is removed. Both features are disabled during PVP and Link Raid; they do not affect multiplayer matches.
 
 ## Online multiplayer beta
 
