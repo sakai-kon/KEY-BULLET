@@ -381,7 +381,7 @@ const game = new GameEngine(canvas, {
       setupNewPrompt();
       $('#phase-label').textContent = 'PHASE 01 / TYPE';
       $('#player-phase').textContent = 'TYPE';
-      $('#typing-feedback').textContent = '時間制限なし。正確率と速度で次のショットを強化。';
+      $('#typing-feedback').textContent = '時間制限なし。ふりがなを見ながら、ゆっくり正確に入力しよう。';
     } else if (phase === 'bullet') {
       audio.setPhase('bullet');
       $('#phase-label').textContent = 'PHASE 02 / DODGE';
@@ -389,7 +389,7 @@ const game = new GameEngine(canvas, {
       $('#typing-input').setAttribute('disabled', 'true');
       $('#fire-button').setAttribute('disabled', 'true');
       $('#input-ready').textContent = 'LOCKED';
-      $('#typing-feedback').textContent = '弾幕フェーズ！ 20秒以内にボスの区切りHPを削り切れ。';
+      $('#typing-feedback').textContent = '弾幕フェーズ！ 移動して敵弾を避けよう。';
     } else {
       $('#phase-label').textContent = 'RUN ENDED';
       $('#player-phase').textContent = 'END';
@@ -418,7 +418,7 @@ function renderDifficultySelection(): void {
   normal.setAttribute('aria-pressed', String(currentDifficulty === 'normal'));
   easy.setAttribute('aria-pressed', String(currentDifficulty === 'easy'));
   $('#difficulty-description').textContent = currentDifficulty === 'easy'
-    ? '敵弾が少なく遅い、残機5・ボム4の超かんたん設定。'
+    ? '敵弾は約半分以下・速度も大幅低下。残機9、ボム6、被弾後の無敵時間も長い超かんたん設定。'
     : '通常の難易度でプレイします。';
 }
 
