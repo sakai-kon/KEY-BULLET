@@ -1110,3 +1110,5 @@ h1 span { text-shadow: none; }
   .difficulty-option { min-height:43px; padding:6px 7px; }
   .furigana-toggle { padding:3px 5px; font-size:7px; }
 }
+
+.typing-meta { flex-wrap: wrap; justify-content: flex-end; }
