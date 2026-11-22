@@ -2,6 +2,12 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.4.1] - 2026-11-22
+
+- Added administrator-only Auto Pilot controls for automatic prompt entry and predictive bullet dodging in STORY / ENDLESS.
+- Automatically disables both assists during PVP and Link Raid, and stops them when administrator access is revoked.
+- Kept the standard player UI, existing game modes, cloud saves, and multiplayer flow unchanged.
+
 ## [0.4.0] - 2026-11-22
 
 - Added private room-code lobbies for signed-in players using Supabase Realtime Broadcast and Presence.
