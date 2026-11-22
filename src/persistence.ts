@@ -50,6 +50,12 @@ const ENDLESS_KEY = 'key-bullet:endless:v1';
 const PROFILE_KEY = 'key-bullet:profile:v1';
 const PBKDF2_ITERATIONS = 180_000;
 
+function notifyLocalDataChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('key-bullet:local-data-changed'));
+  }
+}
+
 export const EMPTY_STATS: CareerStats = {
   version: 1,
   totalRuns: 0,
@@ -73,6 +79,7 @@ export function loadStats(): CareerStats {
 
 export function saveStats(stats: CareerStats): void {
   localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  notifyLocalDataChanged();
 }
 
 export function updateStats(patch: Partial<CareerStats>): CareerStats {
@@ -93,10 +100,12 @@ export function loadEndlessSave(): EndlessSave | null {
 
 export function saveEndless(value: EndlessSave): void {
   localStorage.setItem(ENDLESS_KEY, JSON.stringify(value));
+  notifyLocalDataChanged();
 }
 
 export function clearEndlessSave(): void {
   localStorage.removeItem(ENDLESS_KEY);
+  notifyLocalDataChanged();
 }
 
 export function loadUserProfile(): UserProfile | null {
