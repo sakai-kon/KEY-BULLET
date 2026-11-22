@@ -48,6 +48,13 @@ npm run preview
 
 The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages. Online accounts and cloud saves use the configured Supabase project; guest play still works without signing in.
 
+### Supabase dashboard configuration
+
+- Keep the **Data API** enabled and include `public` in the exposed schemas.
+- Keep the **Email** authentication provider enabled.
+- Set the Site URL to `https://sakai-kon.github.io/KEY-BULLET/` and add that same address to the allowed Redirect URLs.
+- The browser uses only the project's publishable key. Never add a `service_role` or secret key to the frontend.
+
 ## Persistence and transfer
 
 - Settings and career records are kept in browser `localStorage`.
@@ -73,6 +80,7 @@ src/
   engine.ts       Canvas renderer, phases, bullets, scoring and progression
   main.ts         UI, input wiring, menus, stats and modal behavior
   persistence.ts  Local saves and transfer-code import/export
+  cloud.ts        Supabase Auth and per-user cloud synchronization
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
 
