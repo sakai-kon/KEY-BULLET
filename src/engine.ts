@@ -67,6 +67,7 @@ export class GameEngine {
   private accuracy = 100;
   private typingChars = 0;
   private spawnTimer = 0;
+  private barrageIndex = 0;
   private shotTimer = 0;
   private invulnerable = 0;
   private bombFlash = 0;
@@ -145,6 +146,7 @@ export class GameEngine {
     this.accuracy = 100;
     this.typingChars = 0;
     this.spawnTimer = 0;
+    this.barrageIndex = 0;
     this.shotTimer = 0;
     this.invulnerable = 0;
     this.reason = null;
@@ -309,17 +311,34 @@ export class GameEngine {
 
   private spawnBarrage(): void {
     const extra = Math.min(9, this.danger);
-    const count = 6 + extra;
+    const pattern = this.barrageIndex++;
+    const progression = this.mode === 'STORY' ? this.stage - 1 : Math.min(5, this.wave - 1);
+    const count = 8 + extra + Math.min(3, progression);
     const bx = this.bossX();
     const by = this.bossY() + 16;
     const aimed = Math.atan2(this.player.y - by, this.player.x - bx);
-    const spread = this.frame % 5 < 2.5 ? 1.15 : 1.95;
+    // The fan sweeps side to side and widens over the run, so the same corner is not
+    // a permanently safe place. It still leaves temporary gaps for deliberate dodging.
+    const sweep = Math.sin(pattern * 0.72) * 0.34;
+    const spread = Math.min(2.7, 2.2 + progression * 0.08 + extra * 0.025);
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0 : i / (count - 1) - 0.5;
-      const angle = aimed + t * spread + Math.sin(this.frame * 2 + i) * 0.025;
-      const velocity = 118 + (i % 3) * 13 + Math.min(35, extra * 3);
+      const angle = aimed + sweep + t * spread + Math.sin(this.frame * 2 + i) * 0.025;
+      const velocity = 126 + (i % 3) * 15 + Math.min(40, extra * 3) + progression * 4;
       this.bullets.push({ x: bx, y: by, vx: Math.cos(angle) * velocity, vy: Math.sin(angle) * velocity, r: i % 4 === 0 ? 6 : 4.4, grazed: false });
     }
+
+    // Alternating flank shots pass through the outer lanes to discourage static corner camping.
+    if (pattern % 2 === 1) {
+      const laneY = 190 + ((pattern * 47) % 125);
+      const flankSpeed = 150 + progression * 5 + Math.min(24, extra * 2);
+      const downSpeed = 72 + (pattern % 3) * 12;
+      this.bullets.push(
+        { x: 18, y: laneY, vx: flankSpeed, vy: downSpeed, r: 4.2, grazed: false },
+        { x: WIDTH - 18, y: laneY + 24, vx: -flankSpeed, vy: downSpeed, r: 4.2, grazed: false },
+      );
+    }
+
     if (extra > 0) this.danger = Math.max(0, this.danger - Math.ceil(extra / 2));
     this.spawnParticles(bx, by, 3, '#FF2A5F');
   }
