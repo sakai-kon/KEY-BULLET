@@ -2,6 +2,13 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.2.1] - 2026-11-22
+
+- Reworked Japanese input matching to preserve spaces and punctuation while normalizing Unicode compatibility forms.
+- Fixed mistake counting so continuing to type after one typo does not repeatedly add danger; corrections are re-evaluated immediately.
+- Prevented IME candidate-confirmation Enter from being treated as a fire command.
+- Added automated tests for Japanese exact matching, prefixes, edits, Unicode forms, and code whitespace.
+
 ## [0.2.0] - 2026-11-22
 
 - Added a first-run tutorial and a replayable guide.
