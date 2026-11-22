@@ -900,7 +900,7 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
         if (roomError) continue;
         if (!candidate) continue;
         await openRoom(candidate.id);
-        if (room?.id === candidate.id) {
+        if (isCurrentRoom(candidate.id, roomGeneration)) {
           setStatus('前回の待機ルームを復元しました。コードを共有して続けられます。');
         }
         return;
