@@ -1424,3 +1424,56 @@ body.kb-game-active .game-screen #typing-input {
   max-height: calc(var(--kb-viewport-height, 100dvh) - 24px);
   overflow-y: auto;
 }
+
+/* Combat focus: keep announcements out of the play viewport and prioritize the arena. */
+body.kb-game-active #kb-global-maintenance-banner,
+body.kb-game-active .kb-public-announcement,
+body.kb-game-active [data-public-announcement] {
+  display: none !important;
+}
+
+body.kb-game-active .game-screen {
+  padding-top: 2px;
+  padding-bottom: 3px;
+}
+
+body.kb-game-active .game-page-heading {
+  margin-bottom: 3px;
+}
+
+body.kb-game-active .game-page-heading h2 {
+  font-size: clamp(16px, 2vw, 20px);
+}
+
+body.kb-game-active .game-screen .game-column {
+  grid-template-columns: minmax(0, 1.85fr) minmax(230px, .72fr);
+  gap: clamp(5px, .8vw, 10px);
+}
+
+body.kb-game-active .game-screen .canvas-wrap {
+  width: min(100%, 96svh);
+}
+
+@media (max-width: 780px) and (orientation: portrait) {
+  body.kb-game-active .game-screen .game-column {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.4fr) minmax(165px, .62fr);
+    gap: 6px;
+  }
+
+  body.kb-game-active .game-screen .game-panel {
+    min-height: 0;
+  }
+
+  body.kb-game-active .game-screen .canvas-wrap {
+    width: min(100%, 96svh);
+  }
+}
+
+@media (max-width: 780px) and (orientation: landscape) {
+  body.kb-game-active .game-screen .game-column {
+    grid-template-columns: minmax(0, 1.28fr) minmax(220px, .72fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
