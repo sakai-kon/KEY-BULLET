@@ -263,7 +263,7 @@ export async function initializeCloudAccount(): Promise<void> {
   const topActions = document.querySelector<HTMLElement>('.top-actions');
   if (!topActions) return;
   adminPanel = initializeAdminPanel(supabase);
-  multiplayerPanel = initializeMultiplayer(supabase);
+  multiplayerPanel = initializeMultiplayer(supabase, async () => clerk.session?.getToken() ?? null);
 
   const accountButton = document.createElement('button');
   accountButton.className = 'icon-button cloud-account-button';
