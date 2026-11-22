@@ -120,6 +120,12 @@ function fromBase64(value: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
 async function deriveAesKey(secret: string, salt: Uint8Array): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey(
     'raw',
@@ -129,7 +135,7 @@ async function deriveAesKey(secret: string, salt: Uint8Array): Promise<CryptoKey
     ['deriveKey'],
   );
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: toArrayBuffer(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     material,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -170,16 +176,16 @@ async function encryptWithSecret(value: string, secret: string): Promise<Encrypt
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveAesKey(secret, salt);
-  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(value));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, key, toArrayBuffer(new TextEncoder().encode(value)));
   return { salt: toBase64(salt), iv: toBase64(iv), data: toBase64(new Uint8Array(encrypted)) };
 }
 
 async function decryptWithSecret(blob: EncryptedBlob, secret: string): Promise<string> {
   const key = await deriveAesKey(secret, fromBase64(blob.salt));
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: fromBase64(blob.iv) },
+    { name: 'AES-GCM', iv: toArrayBuffer(fromBase64(blob.iv)) },
     key,
-    fromBase64(blob.data),
+    toArrayBuffer(fromBase64(blob.data)),
   );
   return new TextDecoder().decode(decrypted);
 }
