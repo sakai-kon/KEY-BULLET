@@ -76,6 +76,25 @@ export async function refreshPublicGameData(supabase: SupabaseClient): Promise<v
       difficulty_override: ['off', 'normal', 'easy'].includes(row.difficulty_override) ? row.difficulty_override : 'off',
     };
     emitPublicSettings(settings);
+    let maintenanceBanner = document.querySelector<HTMLElement>('#kb-global-maintenance-banner');
+    if (settings.maintenance_mode) {
+      if (!maintenanceBanner) {
+        maintenanceBanner = document.createElement('section');
+        maintenanceBanner.id = 'kb-global-maintenance-banner';
+        maintenanceBanner.className = 'kb-global-maintenance';
+        const title = document.createElement('strong');
+        title.textContent = 'MAINTENANCE MODE';
+        const message = document.createElement('p');
+        message.id = 'kb-global-maintenance-message';
+        maintenanceBanner.append(title, message);
+        document.querySelector('.topbar')?.insertAdjacentElement('afterend', maintenanceBanner);
+      }
+      const message = maintenanceBanner.querySelector<HTMLElement>('#kb-global-maintenance-message');
+      if (message) message.textContent = settings.maintenance_message;
+      maintenanceBanner.hidden = false;
+    } else if (maintenanceBanner) {
+      maintenanceBanner.hidden = true;
+    }
   }
 
   if (!promptsResult.error) {
@@ -103,6 +122,9 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
     .kb-admin-banner--maintenance { border-color:rgba(255,105,125,.42); background:rgba(255,105,125,.07); }
     .kb-admin-banner strong { display:block; margin-bottom:4px; color:#EAFBFF; font-size:12px; }
     .kb-admin-banner p { margin:0; color:#A9BBC2; font-size:11px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .kb-global-maintenance { margin:10px 0 0; padding:12px 15px; border:1px solid rgba(255,105,125,.5); background:rgba(255,105,125,.08); }
+    .kb-global-maintenance strong { display:block; margin-bottom:4px; color:#FFD4D9; font-size:11px; letter-spacing:.1em; }
+    .kb-global-maintenance p { margin:0; color:#E6BFC5; font-size:11px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
     .kb-admin-backdrop { position:fixed; inset:0; z-index:90; display:flex; align-items:center; justify-content:center; padding:12px; background:rgba(1,5,10,.86); backdrop-filter:blur(8px); }
     .kb-admin-backdrop[hidden] { display:none; }
     .kb-admin-card { width:min(100%,940px); max-height:min(94dvh,900px); overflow:auto; padding:22px; border:1px solid rgba(255,190,90,.3); background:#101923; box-shadow:0 24px 80px rgba(0,0,0,.5); color:#D7E6E8; }
@@ -201,7 +223,7 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
       <section class="kb-admin-pane" data-admin-pane="overview">
         <div class="kb-admin-kicker">LIVE OVERVIEW</div>
         <div class="kb-admin-grid">
-          <article class="kb-admin-metric"><span>PUBLISHED PROMPTS</span><strong id="kb-admin-metric-prompts">—</strong></article>
+          <article class="kb-admin-metric"><span>CUSTOM PROMPTS</span><strong id="kb-admin-metric-prompts">—</strong></article>
           <article class="kb-admin-metric"><span>ANNOUNCEMENTS</span><strong id="kb-admin-metric-news">—</strong></article>
           <article class="kb-admin-metric"><span>ACTIVE ROOMS</span><strong id="kb-admin-metric-rooms">—</strong></article>
           <article class="kb-admin-metric"><span>MAINTENANCE</span><strong id="kb-admin-metric-maintenance">—</strong></article>
