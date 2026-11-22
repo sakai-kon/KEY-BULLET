@@ -2,6 +2,11 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.4.2] - 2026-11-22
+
+- Fixed Clerk sign-up and sign-in redirects so they return to the `/KEY-BULLET/` GitHub Pages project path instead of the domain root.
+- Kept account creation, existing sessions, and the cloud-save flow unchanged.
+
 ## [0.4.1] - 2026-11-22
 
 - Added administrator-only Auto Pilot controls for automatic prompt entry and predictive bullet dodging in STORY / ENDLESS.
