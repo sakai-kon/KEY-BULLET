@@ -338,6 +338,12 @@ let prompt: TypingPrompt | null = null;
 let currentPhase: GamePhase = 'ended';
 let currentMode: 'STORY' | 'ENDLESS' = 'STORY';
 let onlineMatchMode: 'pvp' | 'raid' | null = null;
+let adminAssistAccess = false;
+let adminAutoTyping = false;
+let adminAutoDodge = false;
+let autoTypingInterval = 0;
+let autoTypingSubmitTimer = 0;
+let autoTypingInProgress = false;
 let phaseStartedAt = 0;
 let clockFrame = 0;
 let previousInputValue = '';
@@ -386,7 +392,58 @@ const game = new GameEngine(canvas, {
   },
 });
 
+function stopAutoTyping(): void {
+  if (autoTypingInterval) window.clearInterval(autoTypingInterval);
+  if (autoTypingSubmitTimer) window.clearTimeout(autoTypingSubmitTimer);
+  autoTypingInterval = 0;
+  autoTypingSubmitTimer = 0;
+  autoTypingInProgress = false;
+}
+
+function startAutoTyping(): void {
+  stopAutoTyping();
+  if (!adminAssistAccess || !adminAutoTyping || onlineMatchMode || !prompt || currentPhase !== 'typing') return;
+
+  const targetPrompt = prompt;
+  const characters = Array.from(targetPrompt.answers[0] ?? '');
+  if (characters.length === 0) return;
+  const input = $('#typing-input') as HTMLInputElement;
+  let position = 0;
+  autoTypingInProgress = true;
+
+  autoTypingInterval = window.setInterval(() => {
+    if (
+      !adminAssistAccess ||
+      !adminAutoTyping ||
+      onlineMatchMode ||
+      prompt !== targetPrompt ||
+      currentPhase !== 'typing' ||
+      !lastSnapshot?.active
+    ) {
+      stopAutoTyping();
+      return;
+    }
+
+    position = Math.min(characters.length, position + 1);
+    input.value = characters.slice(0, position).join('');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+
+    if (position >= characters.length) {
+      if (autoTypingInterval) window.clearInterval(autoTypingInterval);
+      autoTypingInterval = 0;
+      autoTypingInProgress = false;
+      autoTypingSubmitTimer = window.setTimeout(() => {
+        autoTypingSubmitTimer = 0;
+        if (adminAssistAccess && adminAutoTyping && !onlineMatchMode && prompt === targetPrompt && currentPhase === 'typing') {
+          ($('#typing-form') as HTMLFormElement).requestSubmit();
+        }
+      }, 120);
+    }
+  }, 42);
+}
+
 function setupNewPrompt(): void {
+  stopAutoTyping();
   prompt = getPrompt(selectedGenre);
   phaseStartedAt = performance.now();
   previousInputValue = '';
@@ -415,6 +472,9 @@ function setupNewPrompt(): void {
   $('#metric-misses').textContent = '00';
   updateTypingPanelState();
   requestAnimationFrame(() => $('#typing-input').focus());
+  if (adminAssistAccess && adminAutoTyping && !onlineMatchMode) {
+    window.setTimeout(startAutoTyping, 280);
+  }
 }
 
 function updateTypingPanelState(): void {
@@ -501,6 +561,7 @@ typingInput.addEventListener('compositionend', () => {
 });
 typingInput.addEventListener('input', (event) => {
   const inputEvent = event as InputEvent;
+  if (inputEvent.isTrusted && autoTypingInProgress) stopAutoTyping();
   if (isImeComposing || inputEvent.isComposing || inputEvent.inputType === 'insertCompositionText') return;
   updateTypingInput();
 });
@@ -548,7 +609,9 @@ $('#typing-form').addEventListener('submit', (event) => {
 
 function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   currentMode = mode;
+  stopAutoTyping();
   game.setOnlineMode(onlineMatchMode);
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
   $('#result-retry').toggleAttribute('hidden', onlineMatchMode !== null);
   bestAccuracy = 0;
   void audio.start('typing');
@@ -720,6 +783,7 @@ $('#home-play').addEventListener('click', () => showScreen('menu'));
 $('#home-record-open').addEventListener('click', openRecordModal);
 $('#menu-home').addEventListener('click', () => showScreen('home'));
 $('#game-menu').addEventListener('click', () => {
+  stopAutoTyping();
   window.dispatchEvent(new Event('key-bullet:online-match-exit'));
   onlineMatchMode = null;
   game.setOnlineMode(null);
@@ -734,6 +798,7 @@ $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
 $('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
 $('#result-retry').addEventListener('click', () => beginRun(currentMode));
 $('#result-menu').addEventListener('click', () => {
+  stopAutoTyping();
   window.dispatchEvent(new Event('key-bullet:online-match-exit'));
   onlineMatchMode = null;
   game.setOnlineMode(null);
@@ -851,6 +916,8 @@ function updateClock(): void {
 window.addEventListener('key-bullet:online-start', (event) => {
   const detail = (event as CustomEvent<{ mode: 'pvp' | 'raid' }>).detail;
   if (!detail || !['pvp', 'raid'].includes(detail.mode)) return;
+  stopAutoTyping();
+  game.setAutoDodgeEnabled(false);
   onlineMatchMode = detail.mode;
   beginRun('STORY');
   if (detail.mode === 'raid') game.setOnlineBossHp(1400, 1400);
@@ -893,6 +960,36 @@ window.addEventListener('key-bullet:online-result', (event) => {
   showScreen('result');
   onlineMatchMode = null;
   game.setOnlineMode(null);
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
+});
+
+window.addEventListener('key-bullet:admin-access', (event) => {
+  const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+  adminAssistAccess = detail?.enabled === true;
+  if (!adminAssistAccess) {
+    adminAutoTyping = false;
+    adminAutoDodge = false;
+    stopAutoTyping();
+  }
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
+});
+
+window.addEventListener('key-bullet:admin-assist', (event) => {
+  if (!adminAssistAccess) return;
+  const detail = (event as CustomEvent<{ autoTyping?: boolean; autoDodge?: boolean }>).detail;
+  adminAutoTyping = detail?.autoTyping === true;
+  adminAutoDodge = detail?.autoDodge === true;
+  if (onlineMatchMode) {
+    stopAutoTyping();
+    game.setAutoDodgeEnabled(false);
+    return;
+  }
+  game.setAutoDodgeEnabled(adminAutoDodge);
+  if (adminAutoTyping && currentPhase === 'typing' && lastSnapshot?.active) {
+    startAutoTyping();
+  } else if (!adminAutoTyping) {
+    stopAutoTyping();
+  }
 });
 
 initializeCloudAccount();
