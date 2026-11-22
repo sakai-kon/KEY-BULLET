@@ -298,10 +298,10 @@ export class GameEngine {
     this.clearFlash = Math.max(0, this.clearFlash - dt);
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.invulnerable = Math.max(0, this.invulnerable - dt);
+    this.screenShake = Math.max(0, this.screenShake - dt * 22);
     if (this.phase !== 'bullet') return;
 
     this.phaseElapsed += dt;
-    this.screenShake = Math.max(0, this.screenShake - dt * 22);
     const slow = this.keys.has('shift');
     let speed = this.isEasyMode ? (slow ? 125 : 250) : (slow ? 118 : 275);
     let dx = 0; let dy = 0;
@@ -568,10 +568,10 @@ export class GameEngine {
     this.drawShots();
     this.drawPlayer();
     this.drawParticles();
+    if (this.bombFlash > 0) this.drawBombEffect();
     ctx.restore();
 
     this.drawCanvasHud();
-    if (this.bombFlash > 0) this.drawBombEffect();
     if (this.hitFlash > 0) {
       ctx.fillStyle = `rgba(199,124,141,${this.hitFlash * 0.08})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
