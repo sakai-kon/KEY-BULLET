@@ -8,12 +8,6 @@ All notable changes to KEY BULLET are documented here.
 - Expanded the local Japanese furigana dictionary and added readable ruby styling to prompt text.
 - Kept furigana optional and saved its preference locally; code prompts remain without furigana.
 
-## [0.4.3] - 2026-11-22
-
-- Added a very easy solo difficulty with fewer and slower bullets, more lives and bombs, a shorter dodge phase, and stronger shots.
-- Added a local furigana renderer for common Japanese prompt words, with an ON/OFF control; code prompts and typing answers are unchanged.
-- Kept PVP and Link Raid on normal difficulty.
-
 ## [0.4.2] - 2026-11-22
 
 - Fixed Clerk sign-up and sign-in redirects so they return to the `/KEY-BULLET/` GitHub Pages project path instead of the domain root.
