@@ -439,3 +439,29 @@ h1 span { text-shadow: none; }
 .menu-screen .menu-controls .panel-heading { margin-bottom: 4px; }
 .game-screen .panel { background: linear-gradient(145deg, rgba(17,26,37,.92), rgba(11,17,25,.94)); }
 .game-screen .typing-panel { border-top: 1px solid rgba(145,178,187,.16); }
+
+.transfer-fields { display: grid; gap: 7px; margin: 12px 0; }
+.transfer-fields label, .profile-fields label {
+  color: #A9BDC2; font-size: 10px; font-weight: 700;
+}
+.transfer-fields input, .profile-fields input {
+  width: 100%; min-height: 40px; padding: 9px 11px;
+  border: 1px solid rgba(145,178,187,.24);
+  background: rgba(3,9,16,.72); color: #E1ECEE;
+  font: 12px ui-sans-serif, system-ui, sans-serif;
+}
+.transfer-fields input:focus, .profile-fields input:focus {
+  border-color: rgba(131,187,192,.6);
+}
+.transfer-fields small, .profile-fields label small {
+  margin-left: 7px; color: #718791; font-size: 9px; font-weight: 400;
+}
+.profile-fields { display: grid; gap: 8px; margin-top: 15px; }
+.profile-fields label:not(:first-child) { margin-top: 7px; }
+.profile-card { max-height: min(90vh, 740px); overflow-y: auto; }
+#profile-label { max-width: 78px; overflow: hidden; text-overflow: ellipsis; }
+#transfer-import-fields small { color: #82969F; font-size: 9px; }
+@media (max-width: 540px) {
+  .transfer-fields input, .profile-fields input { min-height: 42px; font-size: 16px; }
+  #profile-label { display: none; }
+}
