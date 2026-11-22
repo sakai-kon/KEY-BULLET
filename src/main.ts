@@ -254,7 +254,7 @@ tutorialScreen.innerHTML = `
         <div class="modal-overline">STEP 04 / MODES & TIPS</div>
         <h3>好きなモードとお題を選ぼう</h3>
         <p>はじめてならSTORYがおすすめ。慣れてきたらENDLESSにも挑戦してみよう。</p>
-        <ul><li>STORY：ステージを進めてクリアを目指す</li><li>ENDLESS：続くWAVEに挑戦。進行状況は自動保存</li><li>ジャンルはRANDOM／CODE／ANIME LINE／SHORT／LONGから選べる</li></ul>
+        <ul><li>STORY：ステージを進めてクリアを目指す</li><li>ENDLESS：続くWAVEに挑戦。進行状況は自動保存</li><li>ジャンルはRANDOM／CODE／DIALOGUE／SHORT／LONGから選べる</li></ul>
         <p class="tutorial-note">物理キーボードが必要です。スマホやタブレットでは外付けキーボードを使ってね。</p>
       </div>
     </article>
