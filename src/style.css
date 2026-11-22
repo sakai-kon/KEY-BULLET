@@ -1045,3 +1045,31 @@ h1 span { text-shadow: none; }
     min-height: 360px;
   }
 }
+
+
+/* Compact online controls in the existing top bar. */
+.kb-online-button {
+  min-width: 58px;
+  padding: 0 7px;
+  font-size: 9px;
+  letter-spacing: .06em;
+}
+@media (max-width: 540px) {
+  .top-actions .icon-button {
+    min-width: 34px;
+    padding: 0 5px;
+    gap: 4px;
+    height: 31px;
+  }
+  .top-actions .button-caption { display: none; }
+  .top-actions .kb-online-button {
+    min-width: 48px;
+    padding: 0 5px;
+    font-size: 8px;
+  }
+  .top-actions .kb-admin-trigger {
+    min-width: 43px;
+    padding: 0 5px;
+    font-size: 8px;
+  }
+}
