@@ -2,6 +2,14 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.5.0] - 2026-11-22
+
+- Replaced the announcement-only admin dialog with a tabbed operations control center and live overview.
+- Added RLS-protected global controls for maintenance, STORY / ENDLESS / ONLINE availability, and optional global difficulty overrides.
+- Added an administrator-managed custom Japanese prompt bank with create, edit, publish/pause and delete actions; active prompts are loaded into every player's prompt pool.
+- Added multiplayer room monitoring and safe cleanup of waiting or finished rooms only.
+- Kept account credentials and private player cloud saves outside the client-side admin panel.
+
 ## [0.4.4] - 2026-11-22
 
 - Improved Japanese furigana legibility with larger, higher-contrast readings and more spacing above the prompt text.
