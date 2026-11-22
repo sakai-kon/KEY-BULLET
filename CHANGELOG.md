@@ -4,6 +4,12 @@ All notable changes to KEY BULLET are documented here.
 
 ## [0.4.3] - 2026-11-22
 
+- Rebalanced EASY into a super-beginner mode: 9 lives, 6 bombs, shorter bullet phases, much fewer and slower bullets, wider hit forgiveness, and longer invulnerability.
+- Expanded the local Japanese furigana dictionary and added readable ruby styling to prompt text.
+- Kept furigana optional and saved its preference locally; code prompts remain without furigana.
+
+## [0.4.3] - 2026-11-22
+
 - Added a very easy solo difficulty with fewer and slower bullets, more lives and bombs, a shorter dodge phase, and stronger shots.
 - Added a local furigana renderer for common Japanese prompt words, with an ON/OFF control; code prompts and typing answers are unchanged.
 - Kept PVP and Link Raid on normal difficulty.
