@@ -7,7 +7,7 @@ const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`;
-const { normalizeTyping, hasPotentialPrefix, isAnswerCorrect, countNewMistakes, PROMPT_COUNT, getPrompt } = await import(moduleUrl);
+const { normalizeTyping, hasPotentialPrefix, isAnswerCorrect, countNewMistakes, PROMPT_COUNT, PROMPT_STATS, getPrompt } = await import(moduleUrl);
 
 const japanese = '静かな夜に、遠くの電車の音が聞こえた。';
 assert.equal(normalizeTyping(japanese), japanese);
@@ -34,7 +34,14 @@ assert.equal(hasPotentialPrefix('const doubled = values.map', [code], true), tru
 process.stdout.write('Typing logic tests passed.\n');
 
 assert.equal(PROMPT_COUNT, 517, 'total prompt count should be 517');
+assert.deepEqual(PROMPT_STATS, {
+  total: 517,
+  uniqueTexts: 517,
+  byGenre: { code: 5, anime: 105, short: 304, long: 103 },
+}, 'all prompts should be unique and distributed across categories');
 for (const genre of ['code', 'anime', 'short', 'long', 'random']) {
   const prompt = getPrompt(genre);
   assert.ok(prompt, `a prompt should exist for ${genre}`);
 }
+
+process.stdout.write('Typing logic tests passed; 517 unique prompts verified.\\n');
