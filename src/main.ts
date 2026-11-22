@@ -2,7 +2,7 @@ import './style.css';
 import { GENRES, getGenreLabel, getPrompt, bestPrefixLength, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
-import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, saveEndless, updateStats } from './persistence';
+import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats, verifyProfilePasscode } from './persistence';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found.');
@@ -18,7 +18,7 @@ app.innerHTML = `
       <div class="top-status"><span class="status-dot"></span><span id="system-status">SYSTEM STANDBY</span><span class="status-divider"></span><span>NO EXTERNAL ASSETS</span></div>
       <div class="top-actions">
         <button class="icon-button" id="sound-toggle" type="button" aria-label="Toggle sound"><span id="sound-icon">♪</span><span class="button-caption">SOUND</span></button>
-        <button class="icon-button" id="stats-open" type="button" aria-label="Open stats"><span>▤</span><span class="button-caption">RECORD</span></button>
+        <button class="icon-button" id="profile-open" type="button" aria-label="Profile settings"><span>◎</span><span class="button-caption" id="profile-label">PROFILE</span></button><button class="icon-button" id="stats-open" type="button" aria-label="Open stats"><span>▤</span><span class="button-caption">RECORD</span></button>
       </div>
     </header>
 
@@ -134,11 +134,31 @@ app.innerHTML = `
     <div class="modal-card modal-wide">
       <div class="modal-overline">DATA MIGRATION / BETA</div>
       <h2>TRANSFER <span>CODE</span></h2>
-      <p>戦績全体を Base64 形式で書き出し・復元します。コードは自分で安全に保管してください。</p>
+      <p>暗号化した引き継ぎコードを作成・復元します。復元時は登録したユーザー名かパスコードのどちらか一つでOK。</p>
       <div class="transfer-tabs"><button class="transfer-tab active" data-tab="export" type="button">EXPORT</button><button class="transfer-tab" data-tab="import" type="button">IMPORT</button></div>
+      <div id="transfer-export-fields" class="transfer-fields"><label for="transfer-passcode">登録したパスコード</label><input id="transfer-passcode" type="password" autocomplete="current-password" placeholder="パスコードを入力" /></div>
+      <div id="transfer-import-fields" class="transfer-fields" hidden><label for="transfer-credential">ユーザー名 または パスコード</label><input id="transfer-credential" type="text" autocomplete="off" placeholder="どちらか一つを入力" /><small>2つとも入力する必要はありません。</small></div>
       <textarea id="transfer-text" rows="4" spellcheck="false" placeholder="KB-BETA-... のコードを貼り付け"></textarea>
       <div class="transfer-message" id="transfer-message">EXPORT で現在の戦績コードを生成できます。</div>
       <div class="modal-actions"><button class="primary-button" id="transfer-action" type="button">GENERATE CODE ↗</button><button class="secondary-button" id="transfer-close" type="button">CLOSE</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="profile-modal" hidden>
+    <div class="modal-card modal-wide profile-card">
+      <div class="modal-overline">PLAYER PROFILE / LOCAL</div>
+      <h2>PLAYER <span>PROFILE</span></h2>
+      <p>ユーザー名とパスコードを登録します。パスコードそのものはこの端末に保存せず、照合用データだけを保存します。</p>
+      <div class="profile-fields">
+        <label for="profile-username">ユーザー名 <small>2〜20文字</small></label>
+        <input id="profile-username" type="text" maxlength="20" autocomplete="username" placeholder="プレイヤー名" />
+        <label for="profile-passcode">パスコード <small>4〜64文字</small></label>
+        <input id="profile-passcode" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="パスコードを設定" />
+        <label for="profile-confirm">パスコード（確認）</label>
+        <input id="profile-confirm" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="もう一度入力" />
+      </div>
+      <div class="transfer-message" id="profile-message">引き継ぎ時はユーザー名かパスコードのどちらか一つを使えます。</div>
+      <div class="modal-actions"><button class="primary-button" id="profile-save" type="button">SAVE PROFILE</button><button class="secondary-button" id="profile-close" type="button">CLOSE</button></div>
     </div>
   </div>
 `;
@@ -451,88 +471,34 @@ async function copyText(value: string): Promise<void> {
   }
 }
 
-function openTransfer(): void {
-  transferMode = 'export';
-  $('#transfer-modal').removeAttribute('hidden');
-  $('.transfer-tab[data-tab="export"]').classList.add('active');
-  $('.transfer-tab[data-tab="import"]').classList.remove('active');
-  $('#transfer-action').textContent = 'GENERATE CODE ↗';
-  ($('#transfer-text') as HTMLTextAreaElement).value = exportTransferCode(loadStats());
-  $('#transfer-message').textContent = '現在の戦績を Base64 文字列に変換しました。COPY して保存してください。';
-}
-
-$('#home-play').addEventListener('click', () => showScreen('menu'));
-$('#home-record-open').addEventListener('click', openRecordModal);
-$('#menu-home').addEventListener('click', () => showScreen('home'));
-$('#game-menu').addEventListener('click', () => {
-  game.stop();
-  currentPhase = 'ended';
-  updateTypingPanelState();
-  $('#system-status').textContent = 'SYSTEM STANDBY';
-  showScreen('home');
-});
-$('#story-start').addEventListener('click', () => beginRun('STORY'));
-$('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
-$('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
-$('#result-retry').addEventListener('click', () => beginRun(currentMode));
-$('#result-menu').addEventListener('click', () => {
-  game.stop();
-  $('#system-status').textContent = 'SYSTEM STANDBY';
-  currentPhase = 'ended';
-  updateTypingPanelState();
-  showScreen('home');
-});
-
-document.querySelectorAll<HTMLButtonElement>('.genre-chip').forEach((button) => {
-  button.addEventListener('click', () => {
-    selectedGenre = button.dataset.genre as Genre;
-    document.querySelectorAll('.genre-chip').forEach((chip) => chip.classList.remove('selected'));
-    button.classList.add('selected');
-    $('#genre-state').textContent = getGenreLabel(selectedGenre);
-    if (currentPhase === 'typing' && lastSnapshot?.active) setupNewPrompt();
-  });
-});
-
-$('#sound-toggle').addEventListener('click', () => {
-  audio.setMuted(!audio.isMuted);
-  $('#sound-icon').textContent = audio.isMuted ? '×' : '♪';
-  $('#sound-toggle').classList.toggle('muted', audio.isMuted);
-});
-$('#stats-open').addEventListener('click', openRecordModal);
-$('#archive-close').addEventListener('click', () => $('#record-modal').setAttribute('hidden', 'true'));
-$('#transfer-open').addEventListener('click', openTransfer);
-$('#transfer-close').addEventListener('click', () => $('#transfer-modal').setAttribute('hidden', 'true'));
-$('#archive-copy').addEventListener('click', async () => {
-  const s = loadStats();
-  const text = `KEY BULLET CAREER RECORD\nRuns: ${s.totalRuns}\nStory Clears: ${s.storyClears}\nEndless Best Wave: ${s.endlessBestWave}\nTotal Score: ${s.totalScore}\nTotal Graze: ${s.totalGrazes}\nBest Accuracy: ${s.bestAccuracy.toFixed(1)}%`;
-  try { await navigator.clipboard.writeText(text); $('#archive-copy').textContent = 'COPIED ✓'; }
-  catch { $('#archive-copy').textContent = 'COPY BLOCKED'; }
-});
-
-document.querySelectorAll<HTMLButtonElement>('.transfer-tab').forEach((button) => {
-  button.addEventListener('click', () => {
-    transferMode = button.dataset.tab as 'export' | 'import';
-    document.querySelectorAll('.transfer-tab').forEach((tab) => tab.classList.toggle('active', tab === button));
-    $('#transfer-action').textContent = transferMode === 'export' ? 'GENERATE CODE ↗' : 'RESTORE RECORD ↗';
-    ($('#transfer-text') as HTMLTextAreaElement).value = transferMode === 'export' ? exportTransferCode(loadStats()) : '';
-    $('#transfer-message').textContent = transferMode === 'export' ? '現在の戦績コードを生成します。' : '保存してある KB-BETA-... コードを貼り付けてください。';
-  });
+function setTransferMode(mode: 'export' | 'import'): void {
+  transferMode = mode;
+  document.querySelectorAll<HTMLButtonElement>('.transfer-tab').forEach((button) => {
+  button.addEventListener('click', () => setTransferMode(button.dataset.tab as 'export' | 'import'));
 });
 $('#transfer-action').addEventListener('click', async () => {
   const area = $('#transfer-text') as HTMLTextAreaElement;
-  if (transferMode === 'export') {
-    area.value = exportTransferCode(loadStats());
-    await copyText(area.value);
-  } else {
-    try {
-      latestStats = importTransferCode(area.value);
+  try {
+    if (transferMode === 'export') {
+      const profile = loadUserProfile();
+      const passcode = ($('#transfer-passcode') as HTMLInputElement).value;
+      if (!profile) throw new Error('先にPROFILEからユーザー名とパスコードを設定してください。');
+      if (!await verifyProfilePasscode(passcode, profile)) throw new Error('登録したパスコードが一致しません。');
+      area.value = await exportTransferCode(loadStats(), profile, passcode);
+      $('#transfer-message').textContent = '暗号化した引き継ぎコードを作成しました。コピーして新しい端末へ移してください。';
+      await copyText(area.value);
+    } else {
+      const credential = ($('#transfer-credential') as HTMLInputElement).value.trim();
+      latestStats = await importTransferCode(area.value, credential);
       renderCareer();
-      $('#transfer-message').textContent = '戦績を復元しました。現在の端末の戦績に置き換えています。';
+      renderProfile();
+      updateContinueButton();
+      $('#transfer-message').textContent = '戦績とプロフィールを復元しました。次回の引き継ぎにも使えます。';
       audio.play('clear');
-    } catch (error) {
-      $('#transfer-message').textContent = error instanceof Error ? error.message : '復元に失敗しました。';
-      audio.play('error');
     }
+  } catch (error) {
+    $('#transfer-message').textContent = error instanceof Error ? error.message : '処理に失敗しました。';
+    audio.play('error');
   }
 });
 
@@ -581,6 +547,7 @@ function updateClock(): void {
 }
 
 renderCareer();
+renderProfile();
 updateContinueButton();
 updateTypingPanelState();
 updateClock();
