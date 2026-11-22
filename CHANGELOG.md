@@ -2,10 +2,15 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.2.4] - 2026-11-22
+
+- Renamed the dialogue prompt category to `DIALOGUE` and removed genre-specific wording from player-facing descriptions.
+- Kept all 617 prompts and the internal category mapping unchanged.
+
 ## [0.2.3] - 2026-11-22
 
-- Added 100 newly written anime-style prompts inspired by familiar story archetypes and genres.
-- Kept series titles and character names out of the prompt text and metadata; no copied anime dialogue was added.
+- Added 100 newly written original dialogue prompts inspired by familiar story archetypes and genres.
+- Kept series titles and character names out of the prompt text and metadata; no existing dialogue was copied.
 - Increased the total prompt library to 617 unique entries.
 
 ## [0.2.2] - 2026-11-22
