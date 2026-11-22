@@ -2,6 +2,11 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.2.2] - 2026-11-22
+
+- Expanded the prompt library to 517 total prompts (including 500 additional Japanese prompts).
+- Reworked bullet patterns with a sweeping wide fan and alternating flank shots to remove permanent safe camping zones while keeping temporary dodge gaps.
+
 ## [0.2.1] - 2026-11-22
 
 - Reworked Japanese input matching to preserve spaces and punctuation while normalizing Unicode compatibility forms.
