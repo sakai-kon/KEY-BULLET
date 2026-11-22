@@ -350,6 +350,15 @@ let currentDifficulty: GameDifficulty = (() => {
   try { return localStorage.getItem('key-bullet:difficulty') === 'easy' ? 'easy' : 'normal'; }
   catch { return 'normal'; }
 })();
+let savedDifficulty: GameDifficulty = currentDifficulty;
+let publicGameSettings = {
+  maintenance_mode: false,
+  maintenance_message: 'ただいまメンテナンス中です。しばらくしてから再度アクセスしてください。',
+  story_enabled: true,
+  endless_enabled: true,
+  online_enabled: true,
+  difficulty_override: 'off' as 'off' | 'normal' | 'easy',
+};
 let furiganaEnabled = (() => {
   try { return localStorage.getItem('key-bullet:furigana') !== 'off'; }
   catch { return true; }
@@ -411,15 +420,35 @@ const game = new GameEngine(canvas, {
 
 
 function renderDifficultySelection(): void {
-  const normal = $('#difficulty-normal');
-  const easy = $('#difficulty-easy');
+  const normal = $('#difficulty-normal') as HTMLButtonElement;
+  const easy = $('#difficulty-easy') as HTMLButtonElement;
+  const forced = publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess;
+  normal.disabled = forced;
+  easy.disabled = forced;
   normal.classList.toggle('selected', currentDifficulty === 'normal');
   easy.classList.toggle('selected', currentDifficulty === 'easy');
   normal.setAttribute('aria-pressed', String(currentDifficulty === 'normal'));
   easy.setAttribute('aria-pressed', String(currentDifficulty === 'easy'));
-  $('#difficulty-description').textContent = currentDifficulty === 'easy'
-    ? '敵弾は約半分以下・速度も大幅低下。残機9、ボム6、被弾後の無敵時間も長い超かんたん設定。'
-    : '通常の難易度でプレイします。';
+  $('#difficulty-description').textContent = forced
+    ? `管理者による全体指定：${currentDifficulty === 'easy' ? 'EASY' : 'NORMAL'}`
+    : currentDifficulty === 'easy'
+      ? '敵弾は少なく遅い。残機9、ボム6、被弾後の無敵時間も長い超かんたん設定。'
+      : '通常の難易度でプレイします。';
+}
+
+function renderGlobalAvailability(): void {
+  const blockedByMaintenance = publicGameSettings.maintenance_mode && !adminAssistAccess;
+  const storyDisabled = blockedByMaintenance || (!publicGameSettings.story_enabled && !adminAssistAccess);
+  const endlessDisabled = blockedByMaintenance || (!publicGameSettings.endless_enabled && !adminAssistAccess);
+  ($('#story-start') as HTMLButtonElement).disabled = storyDisabled;
+  ($('#endless-start') as HTMLButtonElement).disabled = endlessDisabled;
+  ($('#endless-continue') as HTMLButtonElement).disabled = endlessDisabled;
+  ($('#endless-continue') as HTMLButtonElement).hidden =
+    !publicGameSettings.endless_enabled && !adminAssistAccess ? true : ($('#endless-continue') as HTMLButtonElement).hidden;
+  const state = $('#system-status');
+  state.textContent = blockedByMaintenance ? 'MAINTENANCE MODE' : 'SYSTEM STANDBY';
+  $('#story-start').setAttribute('aria-label', storyDisabled ? 'STORYは現在利用できません' : 'STORYを開始');
+  $('#endless-start').setAttribute('aria-label', endlessDisabled ? 'ENDLESSは現在利用できません' : 'ENDLESSを開始');
 }
 
 function renderPromptDisplay(): void {
@@ -651,6 +680,22 @@ $('#typing-form').addEventListener('submit', (event) => {
 });
 
 function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
+  if (!adminAssistAccess && publicGameSettings.maintenance_mode) {
+    window.alert(publicGameSettings.maintenance_message);
+    return;
+  }
+  if (!adminAssistAccess && onlineMatchMode && !publicGameSettings.online_enabled) {
+    onlineMatchMode = null;
+    window.dispatchEvent(new Event('key-bullet:online-match-exit'));
+    window.alert('現在、オンライン対戦は停止されています。');
+    return;
+  }
+  if (!adminAssistAccess && !onlineMatchMode &&
+    ((mode === 'STORY' && !publicGameSettings.story_enabled) ||
+     (mode === 'ENDLESS' && !publicGameSettings.endless_enabled))) {
+    window.alert(mode === 'STORY' ? 'STORYは現在停止されています。' : 'ENDLESSは現在停止されています。');
+    return;
+  }
   currentMode = mode;
   stopAutoTyping();
   game.setOnlineMode(onlineMatchMode);
@@ -838,13 +883,17 @@ $('#game-menu').addEventListener('click', () => {
   showScreen('home');
 });
 $('#difficulty-normal').addEventListener('click', () => {
+  if (publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess) return;
   currentDifficulty = 'normal';
-  try { localStorage.setItem('key-bullet:difficulty', currentDifficulty); } catch { /* Setting remains active for this session. */ }
+  savedDifficulty = 'normal';
+  try { localStorage.setItem('key-bullet:difficulty', savedDifficulty); } catch { /* Setting remains active for this session. */ }
   renderDifficultySelection();
 });
 $('#difficulty-easy').addEventListener('click', () => {
+  if (publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess) return;
   currentDifficulty = 'easy';
-  try { localStorage.setItem('key-bullet:difficulty', currentDifficulty); } catch { /* Setting remains active for this session. */ }
+  savedDifficulty = 'easy';
+  try { localStorage.setItem('key-bullet:difficulty', savedDifficulty); } catch { /* Setting remains active for this session. */ }
   renderDifficultySelection();
 });
 $('#furigana-toggle').addEventListener('click', () => {
@@ -853,6 +902,7 @@ $('#furigana-toggle').addEventListener('click', () => {
   renderPromptDisplay();
 });
 renderDifficultySelection();
+renderGlobalAvailability();
 
 $('#story-start').addEventListener('click', () => beginRun('STORY'));
 $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
@@ -1033,6 +1083,37 @@ window.addEventListener('key-bullet:admin-access', (event) => {
     stopAutoTyping();
   }
   game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
+  if (publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess) {
+    currentDifficulty = publicGameSettings.difficulty_override;
+  } else {
+    currentDifficulty = savedDifficulty;
+  }
+  renderDifficultySelection();
+  renderGlobalAvailability();
+});
+
+window.addEventListener('key-bullet:public-game-settings', (event) => {
+  const detail = (event as CustomEvent<typeof publicGameSettings>).detail;
+  if (!detail) return;
+  publicGameSettings = {
+    maintenance_mode: detail.maintenance_mode === true,
+    maintenance_message: typeof detail.maintenance_message === 'string'
+      ? detail.maintenance_message
+      : publicGameSettings.maintenance_message,
+    story_enabled: detail.story_enabled !== false,
+    endless_enabled: detail.endless_enabled !== false,
+    online_enabled: detail.online_enabled !== false,
+    difficulty_override: ['off', 'normal', 'easy'].includes(detail.difficulty_override)
+      ? detail.difficulty_override
+      : 'off',
+  };
+  if (publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess) {
+    currentDifficulty = publicGameSettings.difficulty_override;
+  } else {
+    currentDifficulty = savedDifficulty;
+  }
+  renderDifficultySelection();
+  renderGlobalAvailability();
 });
 
 window.addEventListener('key-bullet:admin-assist', (event) => {
