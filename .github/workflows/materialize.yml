@@ -1,0 +1,37 @@
+name: Materialize KEY BULLET source
+
+on:
+  push:
+    paths:
+      - '.github/workflows/materialize.yml'
+      - 'source.bundle.tar.xz'
+      - 'source.bundle.tar.xz.b64'
+      - 'bundle/**'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Extract application source and remove transfer files
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xJf source.bundle.tar.xz
+          rm -f source.bundle.tar.xz source.bundle.tar.xz.b64
+          rm -rf bundle
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: add KEY BULLET game source"
+            git push
+          fi
