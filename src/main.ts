@@ -449,6 +449,7 @@ function renderGlobalAvailability(): void {
   state.textContent = blockedByMaintenance ? 'MAINTENANCE MODE' : 'SYSTEM STANDBY';
   $('#story-start').setAttribute('aria-label', storyDisabled ? 'STORYは現在利用できません' : 'STORYを開始');
   $('#endless-start').setAttribute('aria-label', endlessDisabled ? 'ENDLESSは現在利用できません' : 'ENDLESSを開始');
+  updateContinueButton();
 }
 
 function renderPromptDisplay(): void {
