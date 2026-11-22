@@ -300,7 +300,7 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
         <div class="kb-admin-assist">
           <label class="kb-admin-assist-toggle"><input id="kb-admin-auto-type" type="checkbox"><span><strong>自動入力</strong><small>お題を自動入力して攻撃</small></span></label>
           <label class="kb-admin-assist-toggle"><input id="kb-admin-auto-dodge" type="checkbox"><span><strong>自動回避</strong><small>弾道を予測して安全な方向へ移動</small></span></label>
-          <div class="kb-admin-status" id="kb-admin-assist-status">STORY / ENDLESSで利用できます。</div>
+          <div class="kb-admin-status" id="kb-admin-assist-status">STORY / ENDLESS / PVP / LINK RAIDで利用できます。</div>
         </div>
       </section>
 
