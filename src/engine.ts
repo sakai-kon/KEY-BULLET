@@ -334,14 +334,33 @@ export class GameEngine {
         : Math.max(0.32, 0.7 - this.danger * 0.025);
     }
 
-    // The typing result controls the automatic shot rate, impact, and beam width.
+    // Fire visible projectiles from the player's ship toward the boss.
     this.shotTimer += dt;
     const fireInterval = Math.max(0.075, 0.2 - this.power * 0.027);
     while (this.shotTimer >= fireInterval) {
       this.shotTimer -= fireInterval;
       if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval * (this.isEasyMode ? 1.7 : 1);
       this.score += 1;
-      this.particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 16, y: 186 + Math.random() * 15, vx: 0, vy: -130, life: 0.23, maxLife: 0.23, color: '#00F0FF', size: 3 + this.power });
+
+      const originX = this.player.x;
+      const originY = this.player.y - 13;
+      const targetX = this.bossX();
+      const targetY = this.bossY() + 28;
+      const aim = Math.atan2(targetY - originY, targetX - originX);
+      const shotSpeed = 660;
+      for (const spread of [-0.035, 0.035]) {
+        const angle = aim + spread;
+        this.particles.push({
+          x: originX + Math.cos(angle) * 8,
+          y: originY + Math.sin(angle) * 8,
+          vx: Math.cos(angle) * shotSpeed,
+          vy: Math.sin(angle) * shotSpeed,
+          life: 0.42,
+          maxLife: 0.42,
+          color: '#00F0FF',
+          size: 3 + this.power,
+        });
+      }
     }
 
     this.updateBullets(dt);
@@ -725,31 +744,41 @@ export class GameEngine {
   private drawShots(): void {
     if (this.phase !== 'bullet') return;
     const ctx = this.ctx;
+    const startX = this.player.x;
+    const startY = this.player.y - 12;
+    const endX = this.bossX();
+    const endY = this.bossY() + 28;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx);
     const pulse = 0.82 + Math.sin(this.frame * 18) * 0.18;
     const beamWidth = 2 + this.power * 2.1;
     const alpha = (0.14 + this.power * 0.055) * pulse;
-    const top = 184;
-    const height = Math.max(0, this.player.y - top - 12);
+
+    // The beam follows the player's position and always points at the boss.
     ctx.save();
+    ctx.translate(startX, startY);
+    ctx.rotate(angle);
 
-    // Wide atmospheric glow.
-    const glow = ctx.createLinearGradient(this.player.x, top, this.player.x, this.player.y);
-    glow.addColorStop(0, 'rgba(0,240,255,0)');
-    glow.addColorStop(0.72, `rgba(0,240,255,${alpha * 0.28})`);
-    glow.addColorStop(1, `rgba(0,240,255,${alpha * 0.72})`);
+    const glow = ctx.createLinearGradient(0, 0, length, 0);
+    glow.addColorStop(0, `rgba(0,240,255,${alpha * 0.72})`);
+    glow.addColorStop(0.78, `rgba(0,240,255,${alpha * 0.28})`);
+    glow.addColorStop(1, 'rgba(0,240,255,0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(this.player.x - beamWidth * 4, top, beamWidth * 8, height);
+    ctx.fillRect(0, -beamWidth * 4, length, beamWidth * 8);
 
-    // Bright core and two subtle side lances.
-    ctx.shadowColor = '#00F0FF'; ctx.shadowBlur = 13;
+    ctx.shadowColor = '#00F0FF';
+    ctx.shadowBlur = 13;
     ctx.fillStyle = `rgba(0,240,255,${alpha})`;
-    ctx.fillRect(this.player.x - beamWidth * 0.62, top, beamWidth * 1.24, height);
+    ctx.fillRect(0, -beamWidth * 0.62, length, beamWidth * 1.24);
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(225,255,255,.78)';
-    ctx.fillRect(this.player.x - 0.65, top + 12, 1.3, height * 0.92);
+    ctx.fillRect(0, -0.65, length * 0.96, 1.3);
+
     for (const offset of [-beamWidth * 2.2, beamWidth * 2.2]) {
       ctx.fillStyle = `rgba(0,190,215,${alpha * 0.42})`;
-      ctx.fillRect(this.player.x + offset - 0.8, top + 18, 1.6, height * 0.82);
+      ctx.fillRect(0, offset - 0.8, length * 0.84, 1.6);
     }
     ctx.restore();
   }
