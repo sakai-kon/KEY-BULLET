@@ -147,8 +147,8 @@ export class GameEngine {
     this.segments = this.onlineMode === 'raid' ? 1 : mode === 'STORY' ? 3 : 2;
     this.hpMax = SEGMENT_HP;
     this.hp = SEGMENT_HP;
-    this.lives = this.isEasyMode ? 5 : resume?.lives ?? 3;
-    this.bombs = this.isEasyMode ? 4 : resume?.bombs ?? 2;
+    this.lives = this.isEasyMode ? this.maxLives : resume?.lives ?? 3;
+    this.bombs = this.isEasyMode ? this.maxBombs : resume?.bombs ?? 2;
     this.score = resume?.score ?? 0;
     this.grazes = 0;
     this.danger = 0;
@@ -677,7 +677,7 @@ export class GameEngine {
       54,
     );
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(197,238,245,.7)';
-    ctx.fillText(this.phase === 'typing' ? 'PHASE 01  /  TYPE' : `PHASE 02  /  DODGE  ${Math.ceil(Math.max(0, 20 - this.phaseElapsed))}s`, WIDTH - 30, 36);
+    ctx.fillText(this.phase === 'typing' ? 'PHASE 01  /  TYPE' : `PHASE 02  /  DODGE  ${Math.ceil(Math.max(0, this.phaseDuration - this.phaseElapsed))}s`, WIDTH - 30, 36);
     ctx.fillText(`GRAZE ${String(this.grazes).padStart(4, '0')}`, WIDTH - 30, 54);
     const x = 260; const y = 25; const w = 440; const h = 5;
     ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(x, y, w, h);
