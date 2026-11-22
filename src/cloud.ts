@@ -330,7 +330,7 @@ export async function initializeCloudAccount(): Promise<void> {
 
   try {
     await loadClerkUiBundle();
-    const appHomeUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+    const appHomeUrl = new URL('/KEY-BULLET/', window.location.origin).toString(); // Keep aligned with vite.config.ts.
     await clerk.load({
       ui: { ClerkUI: window.__internal_ClerkUICtor as never },
       // GitHub Pages project sites live below /<repository>/, not at the domain root.
