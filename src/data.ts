@@ -5165,6 +5165,35 @@ const CLASSIC_ANIME_PROMPTS: TypingPrompt[] = CLASSIC_ANIME_LINES.map((display, 
 PROMPTS.push(...GENERATED_PROMPTS);
 PROMPTS.push(...CLASSIC_ANIME_PROMPTS);
 
+let ADMIN_PROMPTS: TypingPrompt[] = [];
+
+/** Replace the published custom prompt set loaded from the public game API. */
+export function setCustomPrompts(
+  rows: readonly { id: string; genre: string; title: string; display: string; note: string }[],
+): void {
+  ADMIN_PROMPTS = rows
+    .filter((row) =>
+      typeof row.id === 'string' &&
+      ['anime', 'short', 'long'].includes(row.genre) &&
+      typeof row.title === 'string' && row.title.trim().length > 0 && row.title.length <= 60 &&
+      typeof row.display === 'string' && row.display.trim().length > 0 && row.display.length <= 500 &&
+      typeof row.note === 'string' && row.note.length <= 240
+    )
+    .slice(0, 250)
+    .map((row) => ({
+      id: `admin-${row.id}`,
+      genre: row.genre as Genre,
+      title: row.title.trim(),
+      display: row.display,
+      answers: [row.display],
+      note: row.note.trim() || '管理者が追加したお題',
+    }));
+}
+
+export function getCustomPromptCount(): number {
+  return ADMIN_PROMPTS.length;
+}
+
 /** Total prompt count, including the original five code prompts. */
 export const PROMPT_COUNT = PROMPTS.length;
 
@@ -5180,7 +5209,8 @@ export const PROMPT_STATS = {
 };
 
 export function getPrompt(genre: Genre): TypingPrompt {
-  const pool = genre === 'random' ? PROMPTS : PROMPTS.filter((p) => p.genre === genre);
+  const allPrompts = ADMIN_PROMPTS.length ? [...PROMPTS, ...ADMIN_PROMPTS] : PROMPTS;
+  const pool = genre === 'random' ? allPrompts : allPrompts.filter((p) => p.genre === genre);
   return pool[Math.floor(Math.random() * pool.length)] ?? PROMPTS[0];
 }
 
