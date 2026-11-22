@@ -47,15 +47,17 @@ export function getGenreLabel(genre: Genre): string {
   return GENRES.find((item) => item.id === genre)?.label ?? 'RANDOM';
 }
 
-/** Normalizes IME-confirmed Japanese text and code input without romaji conversion. */
-export function normalizeTyping(value: string, _isCode = false): string {
-  return value.normalize('NFKC').replace(/\s+/g, ' ').trim();
+/** Normalize text for comparison after IME composition has been committed. */
+export function normalizeTyping(value: string, isCode = false): string {
+  if (isCode) return value.replace(/\\s+/g, ' ').trim();
+  // Keep Japanese spaces and punctuation significant; NFKC only unifies compatible forms.
+  return value.normalize('NFKC').replace(/\\r\\n?/g, '\\n');
 }
 
 export function bestPrefixLength(input: string, answers: string[], isCode = false): number {
-  const typed = normalizeTyping(input, isCode);
+  const typed = Array.from(normalizeTyping(input, isCode));
   return Math.max(0, ...answers.map((answer) => {
-    const target = normalizeTyping(answer, isCode);
+    const target = Array.from(normalizeTyping(answer, isCode));
     let i = 0;
     while (i < typed.length && i < target.length && typed[i] === target[i]) i++;
     return i;
@@ -63,9 +65,24 @@ export function bestPrefixLength(input: string, answers: string[], isCode = fals
 }
 
 export function hasPotentialPrefix(input: string, answers: string[], isCode = false): boolean {
-  const typed = normalizeTyping(input, isCode);
-  if (!typed) return true;
-  return answers.some((answer) => normalizeTyping(answer, isCode).startsWith(typed));
+  const typed = Array.from(normalizeTyping(input, isCode));
+  return answers.some((answer) => {
+    const target = Array.from(normalizeTyping(answer, isCode));
+    if (typed.length > target.length) return false;
+    return typed.every((char, index) => char === target[index]);
+  });
+}
+
+/** Count one new mistake only when a previously valid prefix first becomes invalid. */
+export function countNewMistakes(
+  previousInput: string,
+  nextInput: string,
+  answers: string[],
+  isCode = false,
+): number {
+  const wasValid = hasPotentialPrefix(previousInput, answers, isCode);
+  const isValid = hasPotentialPrefix(nextInput, answers, isCode);
+  return wasValid && !isValid ? 1 : 0;
 }
 
 export function isAnswerCorrect(input: string, answers: string[], isCode = false): boolean {
