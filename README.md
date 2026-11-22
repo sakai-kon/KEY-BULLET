@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.3.0` (Beta)**
+**Current version: `v0.3.1` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -20,6 +20,7 @@
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
 - **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Guest play remains available.
+- **Admin console** — a Clerk public-metadata role gates global announcements, drafts, publishing, editing, deletion, and maintenance notices; Supabase RLS enforces write permissions too.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
 
 ## Requirements
@@ -57,6 +58,8 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - Enable email address and password sign-in, and require email verification.
 - Add `https://sakai-kon.github.io` as an allowed origin / redirect host where the Clerk dashboard requests it.
 - The development instance is configured to include the `role: authenticated` claim in session tokens.
+- In **Sessions → Customize session token**, add the claim `"metadata": "{{user.public_metadata}}"` while preserving the existing `role: authenticated` claim.
+- To grant the project owner administrator access, set their **public metadata** to `{ "role": "admin" }` in the Clerk Dashboard after the account exists. Use public metadata, not unsafe metadata; refresh the session after changing it.
 
 ### Supabase dashboard configuration
 
@@ -64,6 +67,7 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - Under **Authentication → Sign In / Providers → Third-Party Auth**, add Clerk using the issuer domain `https://special-gannet-902.clerk.accounts.dev`.
 - In Clerk's **Connect with Supabase** setup, make sure the same Clerk instance is connected to the Supabase project.
 - Keep RLS enabled on `public.player_cloud_saves`. The policies restrict every operation to the matching Clerk issuer and the current JWT subject.
+- The `public.game_announcements` table is created by the tracked migration. Published notices are readable publicly; only tokens whose `metadata.role` is `admin` can create, edit, or delete notices.
 - The database stores Clerk IDs as text; it no longer references `auth.users`.
 - The browser uses only the Supabase publishable key. Never add a `service_role` or secret key to the frontend.
 
@@ -93,6 +97,7 @@ src/
   main.ts         UI, input wiring, menus, stats and modal behavior
   persistence.ts  Local saves and transfer-code import/export
   cloud.ts        Clerk authentication and Supabase cloud synchronization
+  admin.ts        Clerk-role-gated announcement and maintenance controls
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
 
