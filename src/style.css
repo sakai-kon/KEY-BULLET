@@ -1010,3 +1010,10 @@ h1 span { text-shadow: none; }
   .cloud-auth-actions { justify-content: stretch; }
   .cloud-auth-actions button { flex: 1 1 130px; }
 }
+
+
+@media (max-width: 540px) {
+  .top-actions { gap: 4px; flex-shrink: 0; }
+  .brand { gap: 5px; min-width: 0; }
+  .brand-name { font-size: 10px; letter-spacing: .1em; }
+}
