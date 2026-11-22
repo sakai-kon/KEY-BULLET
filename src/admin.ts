@@ -296,7 +296,7 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
 
       <section class="kb-admin-pane" data-admin-pane="assist" hidden>
         <div class="kb-admin-kicker">ADMIN ONLY / AUTO PILOT</div>
-        <p>管理者アカウントでのSTORY / ENDLESS検証用です。オンライン対戦中は自動的に停止します。</p>
+        <p>管理者アカウント専用の検証機能です。STORY / ENDLESSに加え、PVP・LINK RAIDでも自動入力・自動回避を利用できます。対戦相手との公平性に配慮し、利用中はゲーム画面に管理者補助の表示を出します。</p>
         <div class="kb-admin-assist">
           <label class="kb-admin-assist-toggle"><input id="kb-admin-auto-type" type="checkbox"><span><strong>自動入力</strong><small>お題を自動入力して攻撃</small></span></label>
           <label class="kb-admin-assist-toggle"><input id="kb-admin-auto-dodge" type="checkbox"><span><strong>自動回避</strong><small>弾道を予測して安全な方向へ移動</small></span></label>
@@ -660,7 +660,7 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
       detail: { autoTyping: autoType.checked, autoDodge: autoDodge.checked },
     }));
     $('#kb-admin-assist-status').textContent = autoType.checked || autoDodge.checked
-      ? '有効：通常のSTORY / ENDLESSで動作します。オンライン対戦では自動停止します。'
+      ? '有効：STORY / ENDLESS / PVP / LINK RAIDで動作します。オンライン中は管理者補助が有効であることをゲーム画面に表示します。'
       : '自動入力・自動回避はOFFです。';
   }
 
