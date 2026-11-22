@@ -179,6 +179,7 @@ const homeActions = document.createElement('div');
 homeActions.className = 'home-actions';
 homeActions.innerHTML = '<button class="primary-button home-play" id="home-play" type="button">ゲームスタート <span>→</span></button><button class="secondary-button" id="home-record-open" type="button">戦績を見る</button>';
 introRow.querySelector('div')?.append(homeActions);
+recordPanel.classList.add('home-record-panel');
 homeScreen.append(introRow, recordPanel);
 
 const menuScreen = document.createElement('section');
