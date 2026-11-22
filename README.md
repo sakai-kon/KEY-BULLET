@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.4.1` (Beta)**
+**Current version: `v0.4.2` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -19,7 +19,7 @@
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
-- **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Guest play remains available.
+- **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Sign-in and sign-up always return to the GitHub Pages project path. Guest play remains available.
 - **Admin console** — a Clerk public-metadata role gates global announcements, drafts, publishing, editing, deletion, and maintenance notices; Supabase RLS enforces write permissions too.
 - **Admin Auto Pilot** — administrator-only auto typing and predictive bullet dodging for STORY / ENDLESS. Both assists are automatically disabled during PVP and Link Raid.
 - **Online multiplayer beta** — room-code lobbies, 1v1 PVP, and 2–4 player Link Raids using private Supabase Realtime channels. Guest play remains local.
