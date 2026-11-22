@@ -1,4 +1,6 @@
 import './style.css';
+
+declare const __APP_VERSION__: string;
 import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
@@ -13,7 +15,7 @@ app.innerHTML = `
       <a class="brand" href="#top" aria-label="KEY BULLET home">
         <span class="brand-mark"><i></i><i></i><i></i></span>
         <span class="brand-name">KEY <b>BULLET</b></span>
-        <span class="build-tag">BETA 0.1</span>
+        <span class="build-tag" aria-label="アプリのバージョン">BETA v${__APP_VERSION__}</span>
       </a>
       <div class="top-status"><span class="status-dot"></span><span id="system-status">SYSTEM STANDBY</span><span class="status-divider"></span><span>NO EXTERNAL ASSETS</span></div>
       <div class="top-actions">
