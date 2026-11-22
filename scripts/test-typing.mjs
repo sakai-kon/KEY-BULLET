@@ -31,4 +31,4 @@ assert.equal(normalizeTyping('const   doubled = values.map((value) => value * 2)
 assert.equal(isAnswerCorrect('const   doubled = values.map((value) => value * 2);', [code], true), true);
 assert.equal(hasPotentialPrefix('const doubled = values.map', [code], true), true);
 
-process.stdout.write('Typing logic tests passed.\\n');
+process.stdout.write('Typing logic tests passed.\n');
