@@ -2,6 +2,12 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.3.1] - 2026-11-22
+
+- Added an administrator-only control panel for creating, editing, publishing, unpublishing, and deleting global announcements and maintenance notices.
+- Added Supabase RLS policies that require the Clerk public-metadata admin claim for all announcement writes.
+- Kept guest play, player saves, and the existing Clerk/Supabase authentication flow unchanged.
+
 ## [0.3.0] - 2026-11-22
 
 - Replaced Supabase email/password authentication with Clerk's standard SignIn and UserButton components.
