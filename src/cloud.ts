@@ -1,4 +1,5 @@
 import { Clerk } from '@clerk/clerk-js';
+import { initializeAdminPanel } from './admin';
 import { createClient } from '@supabase/supabase-js';
 import {
   clearEndlessSave,
@@ -26,12 +27,14 @@ declare global {
 type CloudUser = {
   id: string;
   primaryEmailAddress?: { emailAddress: string } | null;
+  publicMetadata?: { role?: string } | null;
 };
 
 const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   accessToken: async () => clerk.session?.getToken() ?? null,
 });
+const adminPanel = initializeAdminPanel(supabase);
 
 let activeUser: { id: string; email: string | null } | null = null;
 let clerkReady = false;
@@ -330,6 +333,7 @@ export async function initializeCloudAccount(): Promise<void> {
         : null;
       const changed = nextUser?.id !== activeUser?.id;
       activeUser = nextUser;
+      adminPanel.setAdminEnabled((user as CloudUser | null)?.publicMetadata?.role === 'admin');
 
       if (!activeUser) {
         lastSyncedUserId = null;
