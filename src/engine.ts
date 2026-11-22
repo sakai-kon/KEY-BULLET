@@ -81,6 +81,9 @@ export class GameEngine {
   private player = { x: WIDTH / 2, y: HEIGHT - 92, radius: 5 };
   private dragActive = false;
   private onlineMode: 'pvp' | 'raid' | null = null;
+  private autoDodgeEnabled = false;
+  private autoDodgeDecisionTimer = 0;
+  private autoDodgeDirection = { x: 0, y: 0 };
   private onChange: (snapshot: GameSnapshot) => void;
   private onPhase: (phase: GamePhase) => void;
   private onEnd: (reason: EndReason) => void;
@@ -167,6 +170,13 @@ export class GameEngine {
 
   setOnlineMode(mode: 'pvp' | 'raid' | null): void {
     this.onlineMode = mode;
+    if (mode !== null) this.setAutoDodgeEnabled(false);
+  }
+
+  setAutoDodgeEnabled(enabled: boolean): void {
+    this.autoDodgeEnabled = enabled && this.onlineMode === null;
+    this.autoDodgeDecisionTimer = 0;
+    this.autoDodgeDirection = { x: 0, y: 0 };
   }
 
   setOnlineBossHp(hp: number, hpMax = 1400): void {
@@ -275,12 +285,25 @@ export class GameEngine {
 
     this.phaseElapsed += dt;
     const slow = this.keys.has('shift');
-    const speed = slow ? 118 : 275;
+    let speed = slow ? 118 : 275;
     let dx = 0; let dy = 0;
-    if (this.keys.has('arrowleft') || this.keys.has('a')) dx--;
-    if (this.keys.has('arrowright') || this.keys.has('d')) dx++;
-    if (this.keys.has('arrowup') || this.keys.has('w')) dy--;
-    if (this.keys.has('arrowdown') || this.keys.has('s')) dy++;
+
+    if (this.autoDodgeEnabled && this.onlineMode === null) {
+      this.autoDodgeDecisionTimer -= dt;
+      if (this.autoDodgeDecisionTimer <= 0) {
+        this.autoDodgeDirection = this.chooseAutoDodgeDirection();
+        this.autoDodgeDecisionTimer = 0.14;
+      }
+      dx = this.autoDodgeDirection.x;
+      dy = this.autoDodgeDirection.y;
+      speed = 275;
+    } else {
+      if (this.keys.has('arrowleft') || this.keys.has('a')) dx--;
+      if (this.keys.has('arrowright') || this.keys.has('d')) dx++;
+      if (this.keys.has('arrowup') || this.keys.has('w')) dy--;
+      if (this.keys.has('arrowdown') || this.keys.has('s')) dy++;
+    }
+
     if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
     this.player.x = Math.max(18, Math.min(WIDTH - 18, this.player.x + dx * speed * dt));
     this.player.y = Math.max(170, Math.min(HEIGHT - 20, this.player.y + dy * speed * dt));
@@ -312,6 +335,58 @@ export class GameEngine {
       this.bullets = [];
       this.setPhase('typing');
     }
+  }
+
+  private chooseAutoDodgeDirection(): { x: number; y: number } {
+    if (this.bullets.length === 0) return { x: 0, y: 0 };
+
+    const directions: { x: number; y: number }[] = [
+      { x: 0, y: 0 },
+      ...Array.from({ length: 16 }, (_, index) => {
+        const angle = (Math.PI * 2 * index) / 16;
+        return { x: Math.cos(angle), y: Math.sin(angle) };
+      }),
+    ];
+    const horizonSteps = 6;
+    const stepTime = 0.12;
+    const moveSpeed = 275;
+    const safeDistance = 52;
+    let bestDirection = directions[0];
+    let bestRisk = Number.POSITIVE_INFINITY;
+
+    for (const direction of directions) {
+      let risk = 0;
+
+      for (let step = 1; step <= horizonSteps; step++) {
+        const time = step * stepTime;
+        const candidateX = Math.max(18, Math.min(WIDTH - 18, this.player.x + direction.x * moveSpeed * time));
+        const candidateY = Math.max(170, Math.min(HEIGHT - 20, this.player.y + direction.y * moveSpeed * time));
+        const futureWeight = 1 / (0.65 + time);
+
+        for (const bullet of this.bullets) {
+          const bulletX = bullet.x + bullet.vx * time;
+          const bulletY = bullet.y + bullet.vy * time;
+          const distance = Math.hypot(candidateX - bulletX, candidateY - bulletY);
+          const danger = Math.max(0, safeDistance - distance);
+          if (danger > 0) risk += danger * danger * futureWeight;
+        }
+      }
+
+      const edgeX = Math.min(this.player.x + direction.x * moveSpeed * 0.45, WIDTH - 18 - (this.player.x + direction.x * moveSpeed * 0.45));
+      const edgeY = Math.min(this.player.y + direction.y * moveSpeed * 0.45 - 170, HEIGHT - 20 - (this.player.y + direction.y * moveSpeed * 0.45));
+      risk += Math.max(0, 42 - edgeX) ** 2 * 0.08;
+      risk += Math.max(0, 42 - edgeY) ** 2 * 0.08;
+
+      if (direction.x === 0 && direction.y === 0) risk += 2;
+      if (direction.x !== this.autoDodgeDirection.x || direction.y !== this.autoDodgeDirection.y) risk += 0.8;
+
+      if (risk < bestRisk) {
+        bestRisk = risk;
+        bestDirection = direction;
+      }
+    }
+
+    return bestDirection;
   }
 
   private updateBullets(dt: number): void {
