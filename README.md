@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.2.1` (Beta)**
+**Current version: `v0.2.2` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -10,9 +10,10 @@
 
 - **STORY** — three stages, each with a segmented boss health bar and escalating pixel-art forms.
 - **ENDLESS** — infinite waves with an automatic local checkpoint after each cleared wave.
-- **Five typing categories** — code, original anime-style lines, mixed random, short Japanese text, and long Japanese text.
+- **Five typing categories / 517 prompts** — code, original anime-style lines, mixed random, short Japanese text, and long Japanese text.
 - **Two alternating phases** — untimed typing to power the next shot, followed by a 20-second bullet-hell dodge phase.
 - **Japanese IME input** — type Japanese prompts directly with your IME and confirm kanji/kana conversion; conversion composition is not evaluated until committed. Code prompts are entered as displayed.
+- **Dynamic bullet patterns** — wide sweeping fans and alternating flank shots make fixed camping spots unsafe while preserving moving gaps.
 - **Movement** — WASD or arrow keys, Shift for slow movement and core visibility, plus relative pointer dragging on the canvas.
 - **Bomb** — `Ctrl + C` clears all bullets during the dodge phase.
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
