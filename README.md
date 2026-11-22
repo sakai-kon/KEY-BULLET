@@ -68,7 +68,7 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - Under **Authentication → Sign In / Providers → Third-Party Auth**, add Clerk using the issuer domain `https://special-gannet-902.clerk.accounts.dev`.
 - In Clerk's **Connect with Supabase** setup, make sure the same Clerk instance is connected to the Supabase project.
 - Keep RLS enabled on `public.player_cloud_saves`. The policies restrict every operation to the matching Clerk issuer and the current JWT subject.
-- Enable the Supabase Realtime service. The multiplayer migration creates private room/roster tables, room-management RPCs, and `realtime.messages` RLS policies; the client joins channels with `private: true`.
+- Under **Realtime → Settings**, keep the Realtime service enabled and turn **Allow public access** off so room topics can only be joined as private channels. The multiplayer migration creates private room/roster tables, room-management RPCs, and `realtime.messages` RLS policies; the client joins channels with `private: true`.
 - Online rooms require a Clerk session. PVP supports 2 players; Link Raid supports 2–4 players. The host closes the room when leaving.
 - The `public.game_announcements` table is created by the tracked migration. Published notices are readable publicly; only tokens whose `metadata.role` is `admin` can create, edit, or delete notices.
 - The database stores Clerk IDs as text; it no longer references `auth.users`.
