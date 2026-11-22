@@ -408,6 +408,8 @@ function startAutoTyping(): void {
   const characters = Array.from(targetPrompt.answers[0] ?? '');
   if (characters.length === 0) return;
   const input = $('#typing-input') as HTMLInputElement;
+  if (input.value.length > 0) return;
+  $('#typing-feedback').textContent = 'ADMIN AUTO INPUT / 正解を自動入力しています。';
   let position = 0;
   autoTypingInProgress = true;
 
