@@ -149,6 +149,80 @@ const $ = <T extends HTMLElement>(selector: string): T => {
   return element;
 };
 
+
+function showScreen(screen: 'home' | 'menu' | 'game' | 'result'): void {
+  document.querySelectorAll<HTMLElement>('[data-screen]').forEach((page) => {
+    page.toggleAttribute('hidden', page.dataset.screen !== screen);
+  });
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+// Split the original dashboard into separate screens while preserving the game UI and IDs.
+const pageMain = $('#top');
+const introRow = pageMain.querySelector<HTMLElement>('.intro-row');
+const originalLayout = pageMain.querySelector<HTMLElement>('.game-layout');
+const gameColumn = originalLayout?.querySelector<HTMLElement>('.game-column');
+const modePanel = $('#mode-panel');
+const genrePanel = document.querySelector<HTMLElement>('.genre-panel');
+const controlsPanel = document.querySelector<HTMLElement>('.controls-panel');
+const recordPanel = document.querySelector<HTMLElement>('.mini-record-panel');
+const siteFooter = pageMain.querySelector<HTMLElement>('.site-footer');
+if (!introRow || !originalLayout || !gameColumn || !genrePanel || !controlsPanel || !recordPanel || !siteFooter) {
+  throw new Error('Could not assemble KEY BULLET screens.');
+}
+
+const homeScreen = document.createElement('section');
+homeScreen.id = 'home-screen';
+homeScreen.className = 'page-screen home-screen';
+homeScreen.dataset.screen = 'home';
+const homeActions = document.createElement('div');
+homeActions.className = 'home-actions';
+homeActions.innerHTML = '<button class="primary-button home-play" id="home-play" type="button">ゲームスタート <span>→</span></button><button class="secondary-button" id="home-record-open" type="button">戦績を見る</button>';
+introRow.querySelector('div')?.append(homeActions);
+homeScreen.append(introRow, recordPanel);
+
+const menuScreen = document.createElement('section');
+menuScreen.id = 'menu-screen';
+menuScreen.className = 'page-screen menu-screen';
+menuScreen.dataset.screen = 'menu';
+menuScreen.hidden = true;
+const menuHeading = document.createElement('div');
+menuHeading.className = 'page-heading';
+menuHeading.innerHTML = '<button class="back-link" id="menu-home" type="button">← HOME</button><div class="eyebrow"><span class="eyebrow-line"></span> SELECT YOUR RUN</div><h2>モードを選択</h2><p>遊び方とタイピングのお題を選ぼう。</p>';
+const menuLayout = document.createElement('div');
+menuLayout.className = 'menu-layout';
+menuLayout.append(modePanel, genrePanel);
+menuScreen.append(menuHeading, menuLayout, controlsPanel);
+
+const gameScreen = document.createElement('section');
+gameScreen.id = 'game-screen';
+gameScreen.className = 'page-screen game-screen';
+gameScreen.dataset.screen = 'game';
+gameScreen.hidden = true;
+const gameHeading = document.createElement('div');
+gameHeading.className = 'game-page-heading';
+gameHeading.innerHTML = '<div><div class="eyebrow"><span class="eyebrow-line"></span> COMBAT AREA</div><h2>戦闘中</h2></div><button class="back-link" id="game-menu" type="button">ホームへ戻る</button>';
+const gameLayout = document.createElement('section');
+gameLayout.className = 'game-layout';
+gameLayout.append(gameColumn);
+gameScreen.append(gameHeading, gameLayout);
+originalLayout.remove();
+
+const resultPage = $('#result-modal');
+resultPage.classList.remove('modal-backdrop');
+resultPage.classList.add('page-screen', 'result-screen');
+resultPage.dataset.screen = 'result';
+resultPage.hidden = true;
+const resultCard = resultPage.querySelector<HTMLElement>('.modal-card');
+if (resultCard) {
+  resultCard.classList.remove('modal-card');
+  resultCard.classList.add('result-page', 'panel');
+}
+pageMain.insertBefore(homeScreen, siteFooter);
+pageMain.insertBefore(menuScreen, siteFooter);
+pageMain.insertBefore(gameScreen, siteFooter);
+pageMain.insertBefore(resultPage, siteFooter);
+
 const canvas = $('#game-canvas') as HTMLCanvasElement;
 const audio = new AudioSystem();
 let selectedGenre: Genre = 'random';
@@ -333,7 +407,7 @@ function finishRun(reason: EndReason): void {
   $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
   $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
   $('#result-stage').textContent = currentMode === 'STORY' ? `STAGE ${snapshot.stage}` : `WAVE ${snapshot.wave}`;
-  $('#result-modal').removeAttribute('hidden');
+  showScreen('result');\n  $('#result-modal').removeAttribute('hidden');
   renderCareer();
   updateContinueButton();
   audio.play(reason === 'clear' ? 'clear' : 'hit');
@@ -386,6 +460,16 @@ function openTransfer(): void {
   $('#transfer-message').textContent = '現在の戦績を Base64 文字列に変換しました。COPY して保存してください。';
 }
 
+$('#home-play').addEventListener('click', () => showScreen('menu'));
+$('#home-record-open').addEventListener('click', openRecordModal);
+$('#menu-home').addEventListener('click', () => showScreen('home'));
+$('#game-menu').addEventListener('click', () => {
+  game.stop();
+  currentPhase = 'ended';
+  updateTypingPanelState();
+  $('#system-status').textContent = 'SYSTEM STANDBY';
+  showScreen('home');
+});
 $('#story-start').addEventListener('click', () => beginRun('STORY'));
 $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
 $('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
