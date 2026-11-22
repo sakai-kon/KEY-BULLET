@@ -1,12 +1,13 @@
 {
   "name": "key-bullet",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "npm run test:typing && tsc -b && vite build",
+    "preview": "vite preview",
+    "test:typing": "node scripts/test-typing.mjs"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
