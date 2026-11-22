@@ -1,5 +1,6 @@
 import { Clerk } from '@clerk/clerk-js';
 import { initializeAdminPanel, type AdminPanelController } from './admin';
+import { initializeMultiplayer, type MultiplayerController } from './multiplayer';
 import { createClient } from '@supabase/supabase-js';
 import {
   clearEndlessSave,
@@ -28,6 +29,7 @@ type CloudUser = {
   id: string;
   primaryEmailAddress?: { emailAddress: string } | null;
   publicMetadata?: { role?: string } | null;
+  username?: string | null;
 };
 
 const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
@@ -35,6 +37,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   accessToken: async () => clerk.session?.getToken() ?? null,
 });
 let adminPanel: AdminPanelController | null = null;
+let multiplayerPanel: MultiplayerController | null = null;
 
 let activeUser: { id: string; email: string | null } | null = null;
 let clerkReady = false;
@@ -260,6 +263,7 @@ export async function initializeCloudAccount(): Promise<void> {
   const topActions = document.querySelector<HTMLElement>('.top-actions');
   if (!topActions) return;
   adminPanel = initializeAdminPanel(supabase);
+  multiplayerPanel = initializeMultiplayer(supabase);
 
   const accountButton = document.createElement('button');
   accountButton.className = 'icon-button cloud-account-button';
@@ -334,7 +338,12 @@ export async function initializeCloudAccount(): Promise<void> {
         : null;
       const changed = nextUser?.id !== activeUser?.id;
       activeUser = nextUser;
-      adminPanel?.setAdminEnabled((user as CloudUser | null)?.publicMetadata?.role === 'admin');
+      const clerkUser = user as CloudUser | null;
+      adminPanel?.setAdminEnabled(clerkUser?.publicMetadata?.role === 'admin');
+      multiplayerPanel?.setIdentity(nextUser && clerkUser ? {
+        id: nextUser.id,
+        displayName: clerkUser.username || nextUser.email?.split('@')[0] || 'PLAYER',
+      } : null);
 
       if (!activeUser) {
         lastSyncedUserId = null;
