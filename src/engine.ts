@@ -122,9 +122,9 @@ export class GameEngine {
   }
 
   private get isEasyMode(): boolean { return this.difficulty === 'easy' && this.onlineMode === null; }
-  private get phaseDuration(): number { return this.isEasyMode ? 16 : 20; }
-  private get maxLives(): number { return this.isEasyMode ? 5 : 3; }
-  private get maxBombs(): number { return this.isEasyMode ? 4 : 3; }
+  private get phaseDuration(): number { return this.isEasyMode ? 12 : 20; }
+  private get maxLives(): number { return this.isEasyMode ? 9 : 3; }
+  private get maxBombs(): number { return this.isEasyMode ? 6 : 3; }
 
   getSnapshot(): GameSnapshot {
     return {
@@ -156,7 +156,7 @@ export class GameEngine {
     this.power = 1.4;
     this.accuracy = 100;
     this.typingChars = 0;
-    this.spawnTimer = this.isEasyMode ? 0.45 : 0.25;
+    this.spawnTimer = this.isEasyMode ? 1.5 : 0.25;
     this.barrageIndex = 0;
     this.shotTimer = 0;
     this.invulnerable = 0;
@@ -219,7 +219,7 @@ export class GameEngine {
 
   addMistake(): void {
     if (!this.active || this.phase !== 'typing') return;
-    this.danger = Math.min(this.isEasyMode ? 4 : 12, this.danger + 1);
+    this.danger = Math.min(this.isEasyMode ? 2 : 12, this.danger + 1);
     this.spawnParticles(this.bossX(), this.bossY(), 4, '#FF2A5F');
     this.notify();
   }
@@ -231,7 +231,7 @@ export class GameEngine {
     this.accuracy = accuracy;
     this.score += Math.round(chars * 8 * (accuracy / 100) * this.power);
     this.phaseElapsed = 0;
-    this.spawnTimer = 0.25;
+    this.spawnTimer = this.isEasyMode ? 1.5 : 0.25;
     this.shotTimer = 0;
     this.setPhase('bullet');
     this.spawnParticles(this.player.x, this.player.y - 20, 12, '#00F0FF');
@@ -299,7 +299,7 @@ export class GameEngine {
 
     this.phaseElapsed += dt;
     const slow = this.keys.has('shift');
-    let speed = this.isEasyMode ? (slow ? 145 : 310) : (slow ? 118 : 275);
+    let speed = this.isEasyMode ? (slow ? 125 : 250) : (slow ? 118 : 275);
     let dx = 0; let dy = 0;
 
     if (this.autoDodgeEnabled && this.onlineMode === null) {
@@ -326,7 +326,7 @@ export class GameEngine {
     if (this.spawnTimer <= 0) {
       this.spawnBarrage();
       this.spawnTimer = this.isEasyMode
-        ? Math.max(0.78, 1.12 - this.danger * 0.012)
+        ? Math.max(1.35, 1.8 - this.danger * 0.08)
         : Math.max(0.32, 0.7 - this.danger * 0.025);
     }
 
@@ -335,7 +335,7 @@ export class GameEngine {
     const fireInterval = Math.max(0.075, 0.2 - this.power * 0.027);
     while (this.shotTimer >= fireInterval) {
       this.shotTimer -= fireInterval;
-      if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval * (this.isEasyMode ? 1.35 : 1);
+      if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval * (this.isEasyMode ? 1.7 : 1);
       this.score += 1;
       this.particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 16, y: 186 + Math.random() * 15, vx: 0, vy: -130, life: 0.23, maxLife: 0.23, color: '#00F0FF', size: 3 + this.power });
     }
@@ -412,10 +412,10 @@ export class GameEngine {
       bullet.y += bullet.vy * dt;
       if (bullet.x < -30 || bullet.x > WIDTH + 30 || bullet.y < -30 || bullet.y > HEIGHT + 30) continue;
       const distance = Math.hypot(bullet.x - this.player.x, bullet.y - this.player.y);
-      const hitDistance = bullet.r + this.player.radius - (this.isEasyMode ? 1.6 : 0);
+      const hitDistance = bullet.r + this.player.radius - (this.isEasyMode ? 3.2 : 0);
       if (distance < hitDistance && this.invulnerable <= 0) {
         this.lives--;
-        this.invulnerable = this.isEasyMode ? 2 : 1.25;
+        this.invulnerable = this.isEasyMode ? 2.8 : 1.25;
         this.hitFlash = 0.28;
         this.spawnParticles(this.player.x, this.player.y, 18, '#FF2A5F');
         if (this.lives <= 0) { this.finish('gameover'); return; }
@@ -434,7 +434,7 @@ export class GameEngine {
     const pattern = this.barrageIndex++;
     const progression = this.mode === 'STORY' ? this.stage - 1 : Math.min(5, this.wave - 1);
     const baseCount = 8 + extra + Math.min(3, progression);
-    const count = this.isEasyMode ? Math.max(4, Math.round(baseCount * 0.5)) : baseCount;
+    const count = this.isEasyMode ? 3 + Math.min(1, Math.floor(progression / 2)) : baseCount;
     const bx = this.bossX();
     const by = this.bossY() + 16;
     const aimed = Math.atan2(this.player.y - by, this.player.x - bx);
@@ -445,14 +445,14 @@ export class GameEngine {
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0 : i / (count - 1) - 0.5;
       const angle = aimed + sweep + t * spread + Math.sin(this.frame * 2 + i) * 0.025;
-      const velocity = (126 + (i % 3) * 15 + Math.min(40, extra * 3) + progression * 4) * (this.isEasyMode ? 0.68 : 1);
+      const velocity = (126 + (i % 3) * 15 + Math.min(40, extra * 3) + progression * 4) * (this.isEasyMode ? 0.42 : 1);
       this.bullets.push({ x: bx, y: by, vx: Math.cos(angle) * velocity, vy: Math.sin(angle) * velocity, r: i % 4 === 0 ? 6 : 4.4, grazed: false });
     }
 
     // Alternating flank shots pass through the outer lanes to discourage static corner camping.
-    if (this.isEasyMode ? pattern % 4 === 3 : pattern % 2 === 1) {
+    if (this.isEasyMode ? pattern % 7 === 6 : pattern % 2 === 1) {
       const laneY = 190 + ((pattern * 47) % 125);
-      const flankSpeed = (150 + progression * 5 + Math.min(24, extra * 2)) * (this.isEasyMode ? 0.72 : 1);
+      const flankSpeed = (150 + progression * 5 + Math.min(24, extra * 2)) * (this.isEasyMode ? 0.48 : 1);
       const downSpeed = 72 + (pattern % 3) * 12;
       this.bullets.push(
         { x: 18, y: laneY, vx: flankSpeed, vy: downSpeed, r: 4.2, grazed: false },
