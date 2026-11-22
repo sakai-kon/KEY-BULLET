@@ -170,7 +170,7 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 };
 
 
-function showScreen(screen: 'home' | 'menu' | 'game' | 'result'): void {
+function showScreen(screen: 'tutorial' | 'home' | 'menu' | 'game' | 'result'): void {
   document.querySelectorAll<HTMLElement>('[data-screen]').forEach((page) => {
     page.toggleAttribute('hidden', page.dataset.screen !== screen);
   });
@@ -197,10 +197,93 @@ homeScreen.className = 'page-screen home-screen';
 homeScreen.dataset.screen = 'home';
 const homeActions = document.createElement('div');
 homeActions.className = 'home-actions';
-homeActions.innerHTML = '<button class="primary-button home-play" id="home-play" type="button">ゲームスタート <span>→</span></button><button class="secondary-button" id="home-record-open" type="button">戦績を見る</button>';
+homeActions.innerHTML = '<button class="primary-button home-play" id="home-play" type="button">ゲームスタート <span>→</span></button><button class="secondary-button" id="home-tutorial-open" type="button">遊び方・チュートリアル</button><button class="secondary-button" id="home-record-open" type="button">戦績を見る</button>';
 introRow.querySelector('div')?.append(homeActions);
 recordPanel.classList.add('home-record-panel');
+
 homeScreen.append(introRow, recordPanel);
+
+const tutorialScreen = document.createElement('section');
+tutorialScreen.id = 'tutorial-screen';
+tutorialScreen.className = 'page-screen tutorial-screen';
+tutorialScreen.dataset.screen = 'tutorial';
+tutorialScreen.innerHTML = `
+  <div class="tutorial-top">
+    <div class="eyebrow"><span class="eyebrow-line"></span> FIRST TIME GUIDE</div>
+    <h2>KEY BULLETの遊び方</h2>
+    <p>4つのステップで、基本の流れと操作を確認しよう。</p>
+  </div>
+  <div class="tutorial-progress">
+    <span id="tutorial-step-count">01 / 04</span>
+    <div class="tutorial-progress-track"><span id="tutorial-progress-fill"></span></div>
+    <span id="tutorial-step-label">BASICS</span>
+  </div>
+  <div class="tutorial-pages">
+    <article class="tutorial-page panel" data-tutorial-step="0">
+      <div class="tutorial-visual tutorial-visual-flow"><span class="tutorial-number">01</span><div class="tutorial-flow-row"><span>TYPE</span><b>→</b><span>ATTACK</span><b>→</b><span>DODGE</span></div></div>
+      <div class="tutorial-copy">
+        <div class="modal-overline">STEP 01 / GAME FLOW</div>
+        <h3>タイピングで攻撃、弾幕を避ける</h3>
+        <p>KEY BULLETは「入力フェーズ」と「弾幕フェーズ」をくり返すゲーム。</p>
+        <ul><li>お題をローマ字で入力して攻撃する</li><li>敵の攻撃が始まったら、弾を避ける</li><li>敵のHPをすべて削ると次へ進む</li></ul>
+      </div>
+    </article>
+    <article class="tutorial-page panel" data-tutorial-step="1" hidden>
+      <div class="tutorial-visual tutorial-visual-type"><span class="tutorial-prompt">お題：静かな夜に、星を見る。</span><span class="tutorial-input">&gt;_ shizuka na yoru ni <i>│</i></span><span class="tutorial-tip">ENTER で発射</span></div>
+      <div class="tutorial-copy">
+        <div class="modal-overline">STEP 02 / TYPE TO ATTACK</div>
+        <h3>表示された文章を入力しよう</h3>
+        <p>画面下のお題を、ローマ字で入力してEnterキーを押すとショットを発射する。</p>
+        <ul><li>最後まで正しく入力すると攻撃できる</li><li>速さと正確さがショットの威力に影響する</li><li>ミスをすると危険度が上がるので、あわてず正確に</li></ul>
+      </div>
+    </article>
+    <article class="tutorial-page panel" data-tutorial-step="2" hidden>
+      <div class="tutorial-visual tutorial-visual-dodge"><span class="tutorial-dodge-player">▲</span><span class="tutorial-dodge-bullet bullet-a">●</span><span class="tutorial-dodge-bullet bullet-b">●</span><span class="tutorial-dodge-bullet bullet-c">●</span><span class="tutorial-dodge-label">DODGE THE BULLETS</span></div>
+      <div class="tutorial-copy">
+        <div class="modal-overline">STEP 03 / DODGE</div>
+        <h3>弾幕フェーズは移動して回避</h3>
+        <p>攻撃中はプレイヤーを動かして、飛んでくる弾に当たらないようにしよう。</p>
+        <ul><li>W・A・S・D または矢印キーで移動</li><li>SHIFTを押すと低速移動になり、細かく避けやすい</li><li>CTRL + Cでボムを使い、ピンチを切り抜ける</li></ul>
+      </div>
+    </article>
+    <article class="tutorial-page panel" data-tutorial-step="3" hidden>
+      <div class="tutorial-visual tutorial-visual-modes"><div><strong>STORY</strong><small>物語を進める</small></div><div><strong>ENDLESS</strong><small>WAVEに挑戦</small></div></div>
+      <div class="tutorial-copy">
+        <div class="modal-overline">STEP 04 / MODES & TIPS</div>
+        <h3>好きなモードとお題を選ぼう</h3>
+        <p>はじめてならSTORYがおすすめ。慣れてきたらENDLESSにも挑戦してみよう。</p>
+        <ul><li>STORY：ステージを進めてクリアを目指す</li><li>ENDLESS：続くWAVEに挑戦。進行状況は自動保存</li><li>ジャンルはRANDOM／CODE／ANIME LINE／SHORT／LONGから選べる</li></ul>
+        <p class="tutorial-note">物理キーボードが必要です。スマホやタブレットでは外付けキーボードを使ってね。</p>
+      </div>
+    </article>
+  </div>
+  <div class="tutorial-navigation">
+    <button class="secondary-button" id="tutorial-prev" type="button" disabled>← もどる</button>
+    <div class="tutorial-dots" id="tutorial-dots" aria-label="チュートリアルの進行状況"><span class="active"></span><span></span><span></span><span></span></div>
+    <button class="primary-button" id="tutorial-next" type="button">次へ →</button>
+  </div>
+  <button class="tutorial-skip" id="tutorial-skip" type="button">スキップしてホームへ</button>
+`;
+let tutorialStep = 0;
+const tutorialLabels = ['BASICS', 'TYPE', 'DODGE', 'MODES'];
+function renderTutorialStep(): void {
+  document.querySelectorAll<HTMLElement>('[data-tutorial-step]').forEach((page) => {
+    page.toggleAttribute('hidden', Number(page.dataset.tutorialStep) !== tutorialStep);
+  });
+  $('#tutorial-step-count').textContent = `${String(tutorialStep + 1).padStart(2, '0')} / 04`;
+  $('#tutorial-step-label').textContent = tutorialLabels[tutorialStep];
+  ($('#tutorial-progress-fill') as HTMLSpanElement).style.width = `${((tutorialStep + 1) / 4) * 100}%`;
+  document.querySelectorAll<HTMLElement>('#tutorial-dots span').forEach((dot, index) => {
+    dot.classList.toggle('active', index === tutorialStep);
+    dot.classList.toggle('complete', index < tutorialStep);
+  });
+  ($('#tutorial-prev') as HTMLButtonElement).disabled = tutorialStep === 0;
+  $('#tutorial-next').textContent = tutorialStep === 3 ? 'ホームへ進む →' : '次へ →';
+}
+function finishTutorial(): void {
+  try { localStorage.setItem('key-bullet:tutorial-seen:v1', '1'); } catch { /* The guide remains available from Home. */ }
+  showScreen('home');
+}
 
 const menuScreen = document.createElement('section');
 menuScreen.id = 'menu-screen';
@@ -240,6 +323,7 @@ if (resultCard) {
   resultCard.classList.add('result-page', 'panel');
 }
 pageMain.insertBefore(homeScreen, siteFooter);
+pageMain.insertBefore(tutorialScreen, homeScreen);
 pageMain.insertBefore(menuScreen, siteFooter);
 pageMain.insertBefore(gameScreen, siteFooter);
 pageMain.insertBefore(resultPage, siteFooter);
@@ -526,6 +610,24 @@ $('#profile-save').addEventListener('click', async () => {
   }
 });
 
+$('#tutorial-prev').addEventListener('click', () => {
+  tutorialStep = Math.max(0, tutorialStep - 1);
+  renderTutorialStep();
+});
+$('#tutorial-next').addEventListener('click', () => {
+  if (tutorialStep >= 3) {
+    finishTutorial();
+    return;
+  }
+  tutorialStep += 1;
+  renderTutorialStep();
+});
+$('#tutorial-skip').addEventListener('click', finishTutorial);
+$('#home-tutorial-open').addEventListener('click', () => {
+  tutorialStep = 0;
+  renderTutorialStep();
+  showScreen('tutorial');
+});
 $('#home-play').addEventListener('click', () => showScreen('menu'));
 $('#home-record-open').addEventListener('click', openRecordModal);
 $('#menu-home').addEventListener('click', () => showScreen('home'));
@@ -655,6 +757,12 @@ renderProfile();
 updateContinueButton();
 updateTypingPanelState();
 updateClock();
+renderTutorialStep();
+try {
+  showScreen(localStorage.getItem('key-bullet:tutorial-seen:v1') === '1' ? 'home' : 'tutorial');
+} catch {
+  showScreen('tutorial');
+}
 
 window.addEventListener('beforeunload', () => {
   cancelAnimationFrame(clockFrame);
