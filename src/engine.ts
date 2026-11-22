@@ -188,7 +188,7 @@ export class GameEngine {
   }
 
   setAutoDodgeEnabled(enabled: boolean): void {
-    this.autoDodgeEnabled = enabled && this.onlineMode === null;
+    this.autoDodgeEnabled = enabled;
     this.autoDodgeDecisionTimer = 0;
     this.autoDodgeDirection = { x: 0, y: 0 };
   }
