@@ -1112,3 +1112,10 @@ h1 span { text-shadow: none; }
 }
 
 .typing-meta { flex-wrap: wrap; justify-content: flex-end; }
+
+
+/* Readable furigana for Japanese typing prompts. */
+.prompt-display ruby { ruby-position: over; ruby-align: center; text-decoration: none; }
+.prompt-display rt { color: #8EBBC4; font-size: .48em; font-weight: 600; letter-spacing: 0; line-height: 1; padding-bottom: 2px; }
+.furigana-toggle { border: 1px solid rgba(126,182,199,.22); background: rgba(4,12,20,.65); color: #9BBBC4; padding: 4px 7px; font: 700 8px ui-monospace, sans-serif; cursor: pointer; white-space: nowrap; }
+.furigana-toggle[aria-pressed="true"] { color: var(--cyan); border-color: rgba(0,240,255,.38); background: rgba(0,240,255,.06); }
