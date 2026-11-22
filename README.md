@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.2.4` (Beta)**
+**Current version: `v0.2.5` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -19,6 +19,7 @@
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
+- **Online accounts** — Supabase email/password registration, sign-in, sign-out, and cloud sync for career stats and ENDLESS checkpoints. Guest play remains available.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
 
 ## Requirements
@@ -45,7 +46,7 @@ npm run build
 npm run preview
 ```
 
-The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages. No backend or environment variables are required.
+The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages. Online accounts and cloud saves use the configured Supabase project; guest play still works without signing in.
 
 ## Persistence and transfer
 
