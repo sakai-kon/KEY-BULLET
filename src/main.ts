@@ -62,7 +62,7 @@ app.innerHTML = `
               <div class="typing-meta"><span id="prompt-genre">NO PROMPT</span><span class="meta-divider"></span><span id="prompt-clock">00.00s</span></div>
             </div>
             <div class="prompt-display" id="prompt-display">モードを選択すると、ここにタイピングのお題が表示される。</div>
-            <div class="prompt-note" id="prompt-note">全517件のお題から出題。日本語はIMEで変換して入力。</div>
+            <div class="prompt-note" id="prompt-note">全617件のお題から出題。日本語はIMEで変換して入力。</div>
             <form id="typing-form" autocomplete="off">
               <label class="sr-only" for="typing-input">Type the prompt</label>
               <div class="input-wrap"><span class="input-prefix">&gt;_</span><input id="typing-input" type="text" autocapitalize="off" spellcheck="false" placeholder="ここに入力して Enter で発射" disabled /><span class="input-ready" id="input-ready">LOCKED</span></div>
@@ -213,7 +213,7 @@ tutorialScreen.innerHTML = `
   <div class="tutorial-top">
     <div class="eyebrow"><span class="eyebrow-line"></span> FIRST TIME GUIDE</div>
     <h2>KEY BULLETの遊び方</h2>
-    <p>4つのステップで、基本の流れと操作を確認しよう。お題は全517件。</p>
+    <p>4つのステップで、基本の流れと操作を確認しよう。お題は全617件。</p>
   </div>
   <div class="tutorial-progress">
     <span id="tutorial-step-count">01 / 04</span>
