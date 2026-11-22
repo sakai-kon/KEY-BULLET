@@ -1,5 +1,5 @@
 import { Clerk } from '@clerk/clerk-js';
-import { initializeAdminPanel } from './admin';
+import { initializeAdminPanel, type AdminPanelController } from './admin';
 import { createClient } from '@supabase/supabase-js';
 import {
   clearEndlessSave,
@@ -34,7 +34,7 @@ const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   accessToken: async () => clerk.session?.getToken() ?? null,
 });
-const adminPanel = initializeAdminPanel(supabase);
+let adminPanel: AdminPanelController | null = null;
 
 let activeUser: { id: string; email: string | null } | null = null;
 let clerkReady = false;
@@ -259,6 +259,7 @@ function queueLocalUpload(): void {
 export async function initializeCloudAccount(): Promise<void> {
   const topActions = document.querySelector<HTMLElement>('.top-actions');
   if (!topActions) return;
+  adminPanel = initializeAdminPanel(supabase);
 
   const accountButton = document.createElement('button');
   accountButton.className = 'icon-button cloud-account-button';
@@ -333,7 +334,7 @@ export async function initializeCloudAccount(): Promise<void> {
         : null;
       const changed = nextUser?.id !== activeUser?.id;
       activeUser = nextUser;
-      adminPanel.setAdminEnabled((user as CloudUser | null)?.publicMetadata?.role === 'admin');
+      adminPanel?.setAdminEnabled((user as CloudUser | null)?.publicMetadata?.role === 'admin');
 
       if (!activeUser) {
         lastSyncedUserId = null;
