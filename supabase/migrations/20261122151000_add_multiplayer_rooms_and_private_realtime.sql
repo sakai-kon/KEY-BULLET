@@ -105,7 +105,7 @@ begin
   v_max_players := case when p_mode = 'pvp' then 2 else 4 end;
 
   loop
-    v_code := upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 6));
+    v_code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
     exit when not exists (select 1 from public.game_rooms r where r.code = v_code);
   end loop;
 
