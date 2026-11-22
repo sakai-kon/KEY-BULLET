@@ -2,6 +2,13 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.2.5] - 2026-11-22
+
+- Added Supabase email/password account registration, sign-in, and sign-out.
+- Added per-account cloud synchronization for career stats and ENDLESS checkpoints.
+- Added row-level access controls so authenticated users can access only their own save row.
+- Preserved guest play and the existing local profile / transfer-code feature.
+
 ## [0.2.4] - 2026-11-22
 
 - Renamed the dialogue prompt category to `DIALOGUE` and removed genre-specific wording from player-facing descriptions.
