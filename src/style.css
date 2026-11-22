@@ -424,3 +424,18 @@ h1 span { text-shadow: none; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Home record panel: compact and quiet */
+.home-screen .home-record-panel { margin-top: 2px; padding-bottom: 12px; }
+.home-screen .home-record-panel .panel-heading { min-height: 35px; }
+.home-screen .home-record-panel .record-grid { padding-top: 13px; }
+.home-screen .home-record-panel .record-grid strong { color: #DCE8E9; }
+.home-screen .home-record-panel .text-link { color: #9DBFC2; }
+.home-screen .home-record-panel .text-link:hover { color: #E5EEEE; }
+.home-screen .home-record-panel .record-grid span { font-size: 8px; }
+.home-screen .home-record-panel .record-grid strong { font-size: 18px; }
+.menu-screen .menu-layout .panel { background: rgba(15,23,33,.82); }
+.menu-screen .menu-controls .panel-heading { margin-bottom: 4px; }
+.game-screen .panel { background: linear-gradient(145deg, rgba(17,26,37,.92), rgba(11,17,25,.94)); }
+.game-screen .typing-panel { border-top: 1px solid rgba(145,178,187,.16); }
