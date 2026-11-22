@@ -377,8 +377,8 @@ export class GameEngine {
       risk += Math.max(0, 42 - edgeX) ** 2 * 0.08;
       risk += Math.max(0, 42 - edgeY) ** 2 * 0.08;
 
-      if (direction.x === 0 && direction.y === 0) risk += 2;
-      if (direction.x !== this.autoDodgeDirection.x || direction.y !== this.autoDodgeDirection.y) risk += 0.8;
+      // Prefer staying still unless another path meaningfully reduces predicted danger.
+      if (direction.x !== 0 || direction.y !== 0) risk += 2;
 
       if (risk < bestRisk) {
         bestRisk = risk;
@@ -676,7 +676,7 @@ export class GameEngine {
     }
     ctx.textAlign = 'left'; ctx.font = '600 9px ui-monospace, monospace'; ctx.fillStyle = 'rgba(131,187,192,.72)';
     ctx.fillText(`BOMB × ${this.bombs}`, 30, HEIGHT - 24);
-    ctx.fillStyle = 'rgba(210,230,238,.48)'; ctx.fillText('SHIFT / FOCUS CORE', 112, HEIGHT - 24);
+    ctx.fillStyle = 'rgba(210,230,238,.48)'; ctx.fillText(this.autoDodgeEnabled ? 'AUTO DODGE / ACTIVE' : 'SHIFT / FOCUS CORE', 112, HEIGHT - 24);
     if (this.clearFlash > 0) {
       ctx.textAlign = 'center'; ctx.font = '700 24px ui-monospace, monospace';
       ctx.fillStyle = `rgba(131,187,192,${this.clearFlash * 0.55})`; ctx.fillText('SEGMENT BREAK', WIDTH / 2, HEIGHT / 2 + 4);
