@@ -501,7 +501,7 @@ export class GameEngine {
       this.hpMax = SEGMENT_HP;
       this.danger = 0;
       this.phaseElapsed = 0;
-      this.lives = Math.min(3, this.lives + 1);
+      this.lives = Math.min(this.maxLives, this.lives + 1);
       this.bombs = Math.min(this.maxBombs, this.bombs + 1);
       this.setPhase('typing');
       this.onWaveClear(this.getSnapshot());
