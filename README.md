@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.2.0` (Beta)**
+**Current version: `v0.2.1` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -29,6 +29,12 @@ A modern desktop browser and a physical keyboard. The layout also supports table
 ```bash
 npm install
 npm run dev
+```
+
+## Typing logic tests
+
+```bash
+npm run test:typing
 ```
 
 ## Production build
