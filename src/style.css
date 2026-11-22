@@ -814,3 +814,124 @@ h1 span { text-shadow: none; }
     padding: 4px 0;
   }
 }
+
+
+/* Preserve comfortable controls while keeping the gameplay layout compact. */
+.game-screen .typing-panel {
+  overflow: visible;
+}
+.game-screen .typing-header {
+  padding-top: 12px;
+  padding-bottom: 11px;
+}
+.game-screen .typing-headline {
+  font-size: 11px;
+}
+.game-screen .typing-meta {
+  font-size: 8px;
+}
+.game-screen .prompt-display {
+  min-height: clamp(56px, 9svh, 82px);
+  font-size: clamp(13px, 1.25vw, 16px);
+}
+.game-screen .prompt-display.code-prompt {
+  font-size: clamp(11px, 1.05vw, 14px);
+}
+.game-screen .prompt-note {
+  font-size: 9px;
+}
+.game-screen .input-wrap {
+  min-height: 46px;
+}
+.game-screen #typing-input {
+  min-height: 42px;
+  font-size: 14px;
+}
+.game-screen .fire-button {
+  min-width: 88px;
+  min-height: 44px;
+  padding: 10px 13px;
+}
+.game-screen #typing-feedback {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.game-screen .typing-metrics span {
+  font-size: 8px;
+}
+.game-screen .typing-metrics strong {
+  font-size: 11px;
+}
+
+@media (max-width: 780px) {
+  .game-screen .prompt-display {
+    min-height: 54px;
+    font-size: 13px;
+  }
+  .game-screen .typing-header {
+    padding-top: 10px;
+    padding-bottom: 9px;
+  }
+  .game-screen .input-wrap {
+    min-height: 46px;
+  }
+  .game-screen #typing-input {
+    min-height: 42px;
+    font-size: 14px;
+  }
+  .game-screen .fire-button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 540px) {
+  .game-screen .prompt-display {
+    min-height: 48px;
+    font-size: 13px;
+  }
+  .game-screen .prompt-note {
+    font-size: 8px;
+  }
+  .game-screen .input-wrap {
+    min-height: 48px;
+  }
+  .game-screen #typing-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .game-screen .fire-button {
+    min-width: 88px;
+    min-height: 44px;
+    padding: 9px 11px;
+  }
+  .game-screen #typing-feedback {
+    font-size: 9px;
+  }
+  .game-screen .typing-metrics span {
+    font-size: 8px;
+  }
+  .game-screen .typing-metrics strong {
+    font-size: 10px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .game-screen .prompt-display {
+    min-height: 38px;
+    font-size: 12px;
+  }
+  .game-screen .typing-header {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .game-screen .input-wrap {
+    min-height: 42px;
+  }
+  .game-screen #typing-input {
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .game-screen .fire-button {
+    min-height: 42px;
+  }
+}
