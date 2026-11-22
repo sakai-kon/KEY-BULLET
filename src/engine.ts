@@ -80,6 +80,7 @@ export class GameEngine {
   private keys = new Set<string>();
   private player = { x: WIDTH / 2, y: HEIGHT - 92, radius: 5 };
   private dragActive = false;
+  private onlineMode: 'pvp' | 'raid' | null = null;
   private onChange: (snapshot: GameSnapshot) => void;
   private onPhase: (phase: GamePhase) => void;
   private onEnd: (reason: EndReason) => void;
@@ -162,6 +163,34 @@ export class GameEngine {
     this.phase = 'ended';
     this.bullets = [];
     this.setPhase('ended');
+  }
+
+  setOnlineMode(mode: 'pvp' | 'raid' | null): void {
+    this.onlineMode = mode;
+  }
+
+  setOnlineBossHp(hp: number, hpMax = 1400): void {
+    if (this.onlineMode !== 'raid' || !this.active) return;
+    this.hpMax = Math.max(1, hpMax);
+    this.hp = Math.max(0, Math.min(this.hpMax, hp));
+    if (this.hp <= 0) {
+      this.finish('clear');
+      return;
+    }
+    this.notify();
+  }
+
+  applyOnlineHit(): void {
+    if (this.onlineMode !== 'pvp' || !this.active || this.invulnerable > 0) return;
+    this.lives = Math.max(0, this.lives - 1);
+    this.invulnerable = 0.65;
+    this.hitFlash = 0.28;
+    this.spawnParticles(this.player.x, this.player.y, 18, '#FF2A5F');
+    if (this.lives <= 0) {
+      this.finish('gameover');
+      return;
+    }
+    this.notify();
   }
 
   addMistake(): void {
@@ -267,7 +296,7 @@ export class GameEngine {
     const fireInterval = Math.max(0.075, 0.2 - this.power * 0.027);
     while (this.shotTimer >= fireInterval) {
       this.shotTimer -= fireInterval;
-      this.hp -= (1.3 + this.power * 1.6) * fireInterval;
+      if (this.onlineMode !== 'raid') this.hp -= (1.3 + this.power * 1.6) * fireInterval;
       this.score += 1;
       this.particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 16, y: 186 + Math.random() * 15, vx: 0, vy: -130, life: 0.23, maxLife: 0.23, color: '#00F0FF', size: 3 + this.power });
     }
@@ -543,7 +572,7 @@ export class GameEngine {
     ctx.save();
     ctx.font = '600 11px ui-monospace, monospace';
     ctx.fillStyle = 'rgba(197,238,245,.78)';
-    ctx.fillText(this.mode === 'STORY' ? `STORY / STAGE 0${this.stage}` : `ENDLESS / WAVE ${String(this.wave).padStart(2, '0')}`, 30, 36);
+    ctx.fillText(this.onlineMode === 'raid' ? 'ONLINE RAID / SHARED BOSS' : this.onlineMode === 'pvp' ? 'ONLINE PVP / DUEL' : this.mode === 'STORY' ? `STORY / STAGE 0${this.stage}` : `ENDLESS / WAVE ${String(this.wave).padStart(2, '0')}`, 30, 36);
     ctx.fillStyle = '#A3CBCD'; ctx.fillText(`SEGMENT ${this.segment} / ${this.segments}`, 30, 54);
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(197,238,245,.7)';
     ctx.fillText(this.phase === 'typing' ? 'PHASE 01  /  TYPE' : `PHASE 02  /  DODGE  ${Math.ceil(Math.max(0, 20 - this.phaseElapsed))}s`, WIDTH - 30, 36);
