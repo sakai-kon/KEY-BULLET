@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.3.1` (Beta)**
+**Current version: `v0.4.0` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -21,6 +21,7 @@
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
 - **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Guest play remains available.
 - **Admin console** — a Clerk public-metadata role gates global announcements, drafts, publishing, editing, deletion, and maintenance notices; Supabase RLS enforces write permissions too.
+- **Online multiplayer beta** — room-code lobbies, 1v1 PVP, and 2–4 player Link Raids using private Supabase Realtime channels. Guest play remains local.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
 
 ## Requirements
@@ -67,9 +68,18 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 - Under **Authentication → Sign In / Providers → Third-Party Auth**, add Clerk using the issuer domain `https://special-gannet-902.clerk.accounts.dev`.
 - In Clerk's **Connect with Supabase** setup, make sure the same Clerk instance is connected to the Supabase project.
 - Keep RLS enabled on `public.player_cloud_saves`. The policies restrict every operation to the matching Clerk issuer and the current JWT subject.
+- Enable the Supabase Realtime service. The multiplayer migration creates private room/roster tables, room-management RPCs, and `realtime.messages` RLS policies; the client joins channels with `private: true`.
+- Online rooms require a Clerk session. PVP supports 2 players; Link Raid supports 2–4 players. The host closes the room when leaving.
 - The `public.game_announcements` table is created by the tracked migration. Published notices are readable publicly; only tokens whose `metadata.role` is `admin` can create, edit, or delete notices.
 - The database stores Clerk IDs as text; it no longer references `auth.users`.
 - The browser uses only the Supabase publishable key. Never add a `service_role` or secret key to the frontend.
+
+## Online multiplayer beta
+
+- Open **ONLINE** from the top bar, choose PVP or Link Raid, and create a room. Share the six-character room code with a signed-in player.
+- PVP is a 1v1 typing duel. Each completed prompt sends an attack; three received hits end the match.
+- Link Raid supports 2–4 players. The room host processes typing attacks and broadcasts shared boss HP.
+- This first beta uses Supabase Realtime as a relay, not direct WebRTC peer-to-peer. Match balance, disconnect recovery, and authoritative anti-cheat are not final; do not treat PVP scores as competitive rankings.
 
 ## Persistence and transfer
 
@@ -98,6 +108,7 @@ src/
   persistence.ts  Local saves and transfer-code import/export
   cloud.ts        Clerk authentication and Supabase cloud synchronization
   admin.ts        Clerk-role-gated announcement and maintenance controls
+  multiplayer.ts  Private Realtime lobby, PVP hits, and shared Link Raid HP
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
 
