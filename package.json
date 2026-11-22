@@ -1,7 +1,7 @@
 {
   "name": "key-bullet",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,5 +12,8 @@
   "devDependencies": {
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.2"
   }
 }
