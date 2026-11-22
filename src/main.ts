@@ -109,7 +109,7 @@ app.innerHTML = `
         </aside>
       </section>
 
-      <footer class="site-footer"><span>KEY BULLET <b>© 2026</b></span><span>RENDERED WITH HTML5 CANVAS / WEB AUDIO API</span><span>ALL SYSTEMS LOCAL</span></footer>
+      <footer class="site-footer"><span>KEY BULLET <b>© 2026</b></span><span>RENDERED WITH HTML5 CANVAS / WEB AUDIO API</span><span>ONLINE RELAY / PRIVATE ROOMS</span></footer>
     </main>
   </div>
 
