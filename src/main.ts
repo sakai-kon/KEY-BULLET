@@ -186,6 +186,9 @@ function showScreen(screen: 'tutorial' | 'home' | 'menu' | 'game' | 'result'): v
   document.querySelectorAll<HTMLElement>('[data-screen]').forEach((page) => {
     page.toggleAttribute('hidden', page.dataset.screen !== screen);
   });
+  document.body.classList.toggle('kb-game-active', screen === 'game');
+  if (screen === 'game') requestAnimationFrame(updateGameViewportFit);
+  else if (gameCanvasFrame) gameCanvasFrame.style.removeProperty('width');
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
@@ -341,6 +344,52 @@ pageMain.insertBefore(gameScreen, siteFooter);
 pageMain.insertBefore(resultPage, siteFooter);
 
 const canvas = $('#game-canvas') as HTMLCanvasElement;
+const gameCanvasFrame = $('#canvas-wrap');
+const gamePanel = gameScreen.querySelector<HTMLElement>('.game-panel');
+const gamePanelHeader = gamePanel?.querySelector<HTMLElement>('.panel-topline') ?? null;
+const gamePanelFooter = gamePanel?.querySelector<HTMLElement>('.combat-footer') ?? null;
+
+function updateGameViewportFit(): void {
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  document.documentElement.style.setProperty(
+    '--kb-viewport-height',
+    `${Math.max(1, Math.round(viewportHeight))}px`,
+  );
+
+  if (gameScreen.hidden || !gamePanel || !gamePanelHeader || !gamePanelFooter) {
+    gameCanvasFrame.style.removeProperty('width');
+    return;
+  }
+
+  const panelRect = gamePanel.getBoundingClientRect();
+  const panelStyle = window.getComputedStyle(gamePanel);
+  const paddingX = (Number.parseFloat(panelStyle.paddingLeft) || 0)
+    + (Number.parseFloat(panelStyle.paddingRight) || 0);
+  const paddingY = (Number.parseFloat(panelStyle.paddingTop) || 0)
+    + (Number.parseFloat(panelStyle.paddingBottom) || 0);
+  const fixedHeight = gamePanelHeader.getBoundingClientRect().height
+    + gamePanelFooter.getBoundingClientRect().height
+    + paddingY
+    + 8;
+  const availableHeight = Math.max(0, panelRect.height - fixedHeight);
+  const availableWidth = Math.max(0, panelRect.width - paddingX - 2);
+
+  if (availableHeight <= 0 || availableWidth <= 0) {
+    gameCanvasFrame.style.removeProperty('width');
+    return;
+  }
+
+  const fittedWidth = Math.min(availableWidth, availableHeight * (16 / 9));
+  gameCanvasFrame.style.width = `${Math.floor(fittedWidth)}px`;
+}
+
+const gameFitObserver = new ResizeObserver(() => requestAnimationFrame(updateGameViewportFit));
+gameFitObserver.observe(gameScreen);
+if (gamePanel) gameFitObserver.observe(gamePanel);
+window.addEventListener('resize', updateGameViewportFit, { passive: true });
+window.addEventListener('orientationchange', updateGameViewportFit, { passive: true });
+window.visualViewport?.addEventListener('resize', updateGameViewportFit, { passive: true });
+
 const audio = new AudioSystem();
 let selectedGenre: Genre = 'random';
 let prompt: TypingPrompt | null = null;

@@ -1148,3 +1148,279 @@ h1 span { text-shadow: none; }
   }
   .game-screen .prompt-display.has-furigana rt { font-size: .62em; }
 }
+
+
+/* Viewport-aware layout: adapt the combat screen to width, height and device orientation. */
+:root {
+  --kb-viewport-height: 100dvh;
+  --kb-topbar-height: 74px;
+}
+
+@media (max-width: 780px) {
+  :root { --kb-topbar-height: 62px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  :root { --kb-topbar-height: 52px; }
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body { min-height: 100dvh; }
+.shell { width: min(100%, 1440px); }
+
+body.kb-game-active {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.kb-game-active .shell {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 1440px);
+  height: var(--kb-viewport-height, 100dvh);
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
+}
+
+body.kb-game-active .topbar {
+  flex: 0 0 var(--kb-topbar-height);
+  height: var(--kb-topbar-height);
+  min-height: 0;
+}
+
+body.kb-game-active #top {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.kb-game-active .site-footer { display: none; }
+
+body.kb-game-active .game-screen {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: clamp(3px, .9dvh, 12px) 0;
+  overflow: hidden;
+}
+
+body.kb-game-active .game-page-heading {
+  flex: 0 0 auto;
+  min-height: 0;
+  margin: 0 0 clamp(4px, .8dvh, 9px);
+}
+
+body.kb-game-active .game-screen .game-layout {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+}
+
+body.kb-game-active .game-screen .game-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(250px, .82fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: clamp(6px, 1vw, 12px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+body.kb-game-active .game-screen .game-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.kb-game-active .game-screen .canvas-wrap {
+  flex: 0 1 auto;
+  width: min(100%, 92svh);
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: auto;
+}
+
+body.kb-game-active .game-screen .typing-panel {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+body.kb-game-active .game-screen .prompt-display {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+body.kb-game-active .game-screen #typing-input {
+  min-width: 0;
+}
+
+@media (max-width: 780px) and (orientation: portrait) {
+  body.kb-game-active .game-screen .game-column {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.15fr) minmax(185px, .85fr);
+    align-content: stretch;
+  }
+
+  body.kb-game-active .game-screen .typing-panel {
+    padding: 0 clamp(8px, 2vw, 14px) 8px;
+  }
+
+  body.kb-game-active .game-screen .typing-header {
+    padding-top: clamp(6px, 1dvh, 10px);
+    padding-bottom: clamp(6px, 1dvh, 10px);
+  }
+
+  body.kb-game-active .game-screen .prompt-display {
+    min-height: clamp(40px, 7dvh, 72px);
+    padding: 8px 2px 4px;
+    font-size: clamp(12px, 3.5vw, 16px);
+    line-height: 1.5;
+  }
+
+  body.kb-game-active .game-screen .prompt-display.has-furigana {
+    min-height: clamp(58px, 9dvh, 84px);
+    padding: 13px 3px 7px;
+    line-height: 1.8;
+  }
+
+  body.kb-game-active .game-screen .input-wrap {
+    min-height: clamp(40px, 6dvh, 48px);
+  }
+
+  body.kb-game-active .game-screen #typing-input {
+    min-height: 38px;
+    font-size: clamp(14px, 4vw, 16px);
+  }
+
+  body.kb-game-active .game-screen .typing-bottom {
+    padding: 6px 0;
+  }
+
+  body.kb-game-active .game-screen .typing-metrics {
+    padding-top: 5px;
+  }
+}
+
+@media (max-width: 780px) and (orientation: landscape) {
+  body.kb-game-active .game-screen .game-column {
+    grid-template-columns: minmax(0, 1.08fr) minmax(230px, .92fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  body.kb-game-active .game-screen .typing-panel {
+    padding: 0 9px 6px;
+  }
+
+  body.kb-game-active .game-screen .typing-header {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  body.kb-game-active .game-screen .prompt-display {
+    min-height: clamp(34px, 9dvh, 58px);
+    padding-top: 5px;
+    font-size: clamp(10px, 1.8vw, 13px);
+    line-height: 1.45;
+  }
+
+  body.kb-game-active .game-screen .input-wrap {
+    min-height: 38px;
+  }
+
+  body.kb-game-active .game-screen #typing-input {
+    min-height: 34px;
+    font-size: 13px;
+  }
+
+  body.kb-game-active .game-screen .typing-bottom {
+    padding: 4px 0;
+  }
+
+  body.kb-game-active .game-screen .typing-metrics {
+    padding-top: 4px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  body.kb-game-active .topbar {
+    height: var(--kb-topbar-height);
+  }
+
+  body.kb-game-active .game-screen .game-page-heading {
+    margin-bottom: 3px;
+  }
+
+  body.kb-game-active .game-screen .game-page-heading .eyebrow {
+    display: none;
+  }
+
+  body.kb-game-active .game-screen .game-page-heading h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  body.kb-game-active .game-screen .panel-topline {
+    min-height: 29px;
+  }
+
+  body.kb-game-active .game-screen .combat-footer {
+    flex-basis: 32px;
+    height: 32px;
+  }
+
+  body.kb-game-active .game-screen .typing-header {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  body.kb-game-active .game-screen .prompt-display {
+    min-height: 32px;
+    padding-top: 4px;
+    font-size: 11px;
+  }
+
+  body.kb-game-active .game-screen .typing-metrics {
+    padding-top: 3px;
+  }
+}
+
+/* Keep dialogs usable on short viewports and browser-zoomed layouts. */
+.modal-backdrop {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-card {
+  max-height: calc(var(--kb-viewport-height, 100dvh) - 24px);
+  overflow-y: auto;
+}

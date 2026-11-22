@@ -333,8 +333,10 @@ export async function initializeCloudAccount(): Promise<void> {
     const appHomeUrl = new URL('/KEY-BULLET/', window.location.origin).toString(); // Keep aligned with vite.config.ts.
     await clerk.load({
       ui: { ClerkUI: window.__internal_ClerkUICtor as never },
-      // GitHub Pages project sites live below /<repository>/, not at the domain root.
-      // Keep both new sign-ups and returning users inside the deployed app.
+      // This project has no standalone /sign-in or /sign-up routes.
+      // Keep Clerk's auth-page URLs and post-auth redirects inside the GitHub Pages project path.
+      signInUrl: appHomeUrl,
+      signUpUrl: appHomeUrl,
       signInFallbackRedirectUrl: appHomeUrl,
       signUpFallbackRedirectUrl: appHomeUrl,
       signInForceRedirectUrl: appHomeUrl,

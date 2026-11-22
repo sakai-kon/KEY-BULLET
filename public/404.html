@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>KEY BULLET</title>
+    <script>
+      (() => {
+        const appBase = '/KEY-BULLET/';
+        const currentPath = window.location.pathname;
+        const isInsideProject = currentPath.startsWith(appBase);
+        const route = isInsideProject ? currentPath.slice(appBase.length) : '';
+        const isVirtualRoute = route.length > 0 && !route.split('/').some((part) => /\.[a-z0-9]{1,8}$/i.test(part));
+
+        if (isVirtualRoute) {
+          const target = new URL(appBase, window.location.origin);
+          target.search = window.location.search;
+          target.hash = window.location.hash;
+          window.location.replace(target.href);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>ページを開けませんでした。<a href="/KEY-BULLET/">KEY BULLETのトップへ戻る</a></p>
+  </body>
+</html>
