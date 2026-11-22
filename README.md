@@ -28,13 +28,7 @@ A modern desktop browser and a physical keyboard. The layout also supports table
 
 ## Development
 
-Create a local `.env.local` file with the Clerk publishable key from the selected Clerk application:
-
-```bash
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-```
-
-Then run:
+The selected Clerk publishable key is configured in `src/cloud.ts`. It is a public browser key, not a secret. Then run:
 
 ```bash
 npm install
