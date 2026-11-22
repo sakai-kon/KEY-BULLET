@@ -2,7 +2,7 @@ export type Genre = 'code' | 'anime' | 'random' | 'short' | 'long';
 
 export const GENRES: { id: Genre; label: string; sub: string; code: string }[] = [
   { id: 'code', label: 'CODE', sub: 'Syntax / Logic', code: '01' },
-  { id: 'anime', label: 'ANIME LINE', sub: 'Original anime-style lines', code: '02' },
+  { id: 'anime', label: 'DIALOGUE', sub: 'Original dialogue lines', code: '02' },
   { id: 'random', label: 'RANDOM', sub: 'Mixed challenge', code: '03' },
   { id: 'short', label: 'SHORT TEXT', sub: 'Everyday Japanese', code: '04' },
   { id: 'long', label: 'LONG TEXT', sub: 'Long-form typing', code: '05' },
@@ -24,11 +24,11 @@ const PROMPTS: TypingPrompt[] = [
   { id: 'c03', genre: 'code', title: 'OBJECT', display: 'const player = { hp: 100, speed: 4, active: true };', answers: ['const player = { hp: 100, speed: 4, active: true };'], note: 'プレイヤーの状態をオブジェクトで定義する。', isCode: true },
   { id: 'c04', genre: 'code', title: 'CONDITION', display: 'if (score >= 1000 && lives > 0) { levelUp(); }', answers: ['if (score >= 1000 && lives > 0) { levelUp(); }'], note: 'スコアと残機の条件を同時に判定する。', isCode: true },
   { id: 'c05', genre: 'code', title: 'ASYNC', display: 'const response = await fetch("/api/status");', answers: ['const response = await fetch("/api/status");'], note: 'API からステータスを取得する。', isCode: true },
-  { id: 'a01', genre: 'anime', title: 'LAST SIGNAL', display: '諦める理由を探すより、進む理由を一つ見つけよう。', answers: ['諦める理由を探すより、進む理由を一つ見つけよう。'], note: 'オリジナルのアニメ風セリフ。', },
-  { id: 'a02', genre: 'anime', title: 'BLUE HORIZON', display: 'この一秒に懸けた想いは、きっと未来まで届く。', answers: ['この一秒に懸けた想いは、きっと未来まで届く。'], note: 'オリジナルのアニメ風セリフ。' },
-  { id: 'a03', genre: 'anime', title: 'ZERO POINT', display: '失敗した数だけ、僕らは答えに近づいている。', answers: ['失敗した数だけ、僕らは答えに近づいている。'], note: 'オリジナルのアニメ風セリフ。' },
-  { id: 'a04', genre: 'anime', title: 'AFTERGLOW', display: '守りたいものがあるなら、もう一度立ち上がれる。', answers: ['守りたいものがあるなら、もう一度立ち上がれる。'], note: 'オリジナルのアニメ風セリフ。' },
-  { id: 'a05', genre: 'anime', title: 'RESONANCE', display: '君が信じた可能性を、誰にも決めさせない。', answers: ['君が信じた可能性を、誰にも決めさせない。'], note: 'オリジナルのアニメ風セリフ。' },
+  { id: 'a01', genre: 'anime', title: 'LAST SIGNAL', display: '諦める理由を探すより、進む理由を一つ見つけよう。', answers: ['諦める理由を探すより、進む理由を一つ見つけよう。'], note: 'オリジナルのセリフ。', },
+  { id: 'a02', genre: 'anime', title: 'BLUE HORIZON', display: 'この一秒に懸けた想いは、きっと未来まで届く。', answers: ['この一秒に懸けた想いは、きっと未来まで届く。'], note: 'オリジナルのセリフ。' },
+  { id: 'a03', genre: 'anime', title: 'ZERO POINT', display: '失敗した数だけ、僕らは答えに近づいている。', answers: ['失敗した数だけ、僕らは答えに近づいている。'], note: 'オリジナルのセリフ。' },
+  { id: 'a04', genre: 'anime', title: 'AFTERGLOW', display: '守りたいものがあるなら、もう一度立ち上がれる。', answers: ['守りたいものがあるなら、もう一度立ち上がれる。'], note: 'オリジナルのセリフ。' },
+  { id: 'a05', genre: 'anime', title: 'RESONANCE', display: '君が信じた可能性を、誰にも決めさせない。', answers: ['君が信じた可能性を、誰にも決めさせない。'], note: 'オリジナルのセリフ。' },
   { id: 's01', genre: 'short', title: 'DAILY / 01', display: '静かな夜に、遠くの電車の音が聞こえた。', answers: ['静かな夜に、遠くの電車の音が聞こえた。'], note: '短文・日本語IME入力。' },
   { id: 's02', genre: 'short', title: 'DAILY / 02', display: '小さな一歩でも、昨日より前に進んでいる。', answers: ['小さな一歩でも、昨日より前に進んでいる。'], note: '短文・日本語IME入力。' },
   { id: 's03', genre: 'short', title: 'DAILY / 03', display: '新しい技術を学ぶ時間は、とても楽しい。', answers: ['新しい技術を学ぶ時間は、とても楽しい。'], note: '短文・日本語IME入力。' },
@@ -39,7 +39,7 @@ const PROMPTS: TypingPrompt[] = [
 ];
 
 /**
- * Additional Japanese prompts: 300 short, 100 original anime-style, and 100 long texts.
+ * Additional Japanese prompts: 300 short, 100 original dialogue lines, and 100 long texts.
  * Every answer is matched against its displayed Japanese text after IME composition.
  */
 const GENERATED_PROMPTS: TypingPrompt[] = [
@@ -3051,7 +3051,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、まだ見ぬ景色を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-002",
@@ -3061,7 +3061,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、まだ見ぬ景色が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-003",
@@ -3071,7 +3071,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日のまだ見ぬ景色は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-004",
@@ -3081,7 +3081,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "まだ見ぬ景色を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-005",
@@ -3091,7 +3091,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、まだ見ぬ景色を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-006",
@@ -3101,7 +3101,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、仲間と交わした約束を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-007",
@@ -3111,7 +3111,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、仲間と交わした約束が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-008",
@@ -3121,7 +3121,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の仲間と交わした約束は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-009",
@@ -3131,7 +3131,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "仲間と交わした約束を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-010",
@@ -3141,7 +3141,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、仲間と交わした約束を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-011",
@@ -3151,7 +3151,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、自分で選んだ道を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-012",
@@ -3161,7 +3161,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、自分で選んだ道が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-013",
@@ -3171,7 +3171,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の自分で選んだ道は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-014",
@@ -3181,7 +3181,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "自分で選んだ道を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-015",
@@ -3191,7 +3191,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、自分で選んだ道を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-016",
@@ -3201,7 +3201,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、小さな勇気を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-017",
@@ -3211,7 +3211,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、小さな勇気が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-018",
@@ -3221,7 +3221,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の小さな勇気は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-019",
@@ -3231,7 +3231,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "小さな勇気を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-020",
@@ -3241,7 +3241,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、小さな勇気を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-021",
@@ -3251,7 +3251,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、最後まで信じた可能性を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-022",
@@ -3261,7 +3261,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、最後まで信じた可能性が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-023",
@@ -3271,7 +3271,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の最後まで信じた可能性は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-024",
@@ -3281,7 +3281,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "最後まで信じた可能性を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-025",
@@ -3291,7 +3291,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、最後まで信じた可能性を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-026",
@@ -3301,7 +3301,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、遠くに見える光を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-027",
@@ -3311,7 +3311,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、遠くに見える光が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-028",
@@ -3321,7 +3321,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の遠くに見える光は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-029",
@@ -3331,7 +3331,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "遠くに見える光を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-030",
@@ -3341,7 +3341,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、遠くに見える光を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-031",
@@ -3351,7 +3351,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、何度でも立ち上がる意志を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-032",
@@ -3361,7 +3361,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、何度でも立ち上がる意志が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-033",
@@ -3371,7 +3371,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の何度でも立ち上がる意志は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-034",
@@ -3381,7 +3381,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "何度でも立ち上がる意志を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-035",
@@ -3391,7 +3391,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、何度でも立ち上がる意志を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-036",
@@ -3401,7 +3401,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、胸に残る声を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-037",
@@ -3411,7 +3411,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、胸に残る声が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-038",
@@ -3421,7 +3421,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の胸に残る声は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-039",
@@ -3431,7 +3431,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "胸に残る声を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-040",
@@ -3441,7 +3441,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、胸に残る声を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-041",
@@ -3451,7 +3451,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、明日へつなぐ希望を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-042",
@@ -3461,7 +3461,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、明日へつなぐ希望が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-043",
@@ -3471,7 +3471,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の明日へつなぐ希望は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-044",
@@ -3481,7 +3481,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "明日へつなぐ希望を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-045",
@@ -3491,7 +3491,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、明日へつなぐ希望を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-046",
@@ -3501,7 +3501,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、変わることを恐れない心を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-047",
@@ -3511,7 +3511,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、変わることを恐れない心が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-048",
@@ -3521,7 +3521,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の変わることを恐れない心は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-049",
@@ -3531,7 +3531,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "変わることを恐れない心を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-050",
@@ -3541,7 +3541,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、変わることを恐れない心を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-051",
@@ -3551,7 +3551,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、守りたい日常を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-052",
@@ -3561,7 +3561,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、守りたい日常が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-053",
@@ -3571,7 +3571,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の守りたい日常は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-054",
@@ -3581,7 +3581,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "守りたい日常を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-055",
@@ -3591,7 +3591,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、守りたい日常を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-056",
@@ -3601,7 +3601,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、あの日に見た夢を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-057",
@@ -3611,7 +3611,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、あの日に見た夢が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-058",
@@ -3621,7 +3621,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日のあの日に見た夢は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-059",
@@ -3631,7 +3631,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日に見た夢を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-060",
@@ -3641,7 +3641,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、あの日に見た夢を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-061",
@@ -3651,7 +3651,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、未来を変える一歩を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-062",
@@ -3661,7 +3661,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、未来を変える一歩が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-063",
@@ -3671,7 +3671,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の未来を変える一歩は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-064",
@@ -3681,7 +3681,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "未来を変える一歩を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-065",
@@ -3691,7 +3691,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、未来を変える一歩を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-066",
@@ -3701,7 +3701,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、本当の強さを信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-067",
@@ -3711,7 +3711,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、本当の強さが私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-068",
@@ -3721,7 +3721,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の本当の強さは、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-069",
@@ -3731,7 +3731,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "本当の強さを守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-070",
@@ -3741,7 +3741,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、本当の強さを胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-071",
@@ -3751,7 +3751,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、あきらめない気持ちを信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-072",
@@ -3761,7 +3761,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、あきらめない気持ちが私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-073",
@@ -3771,7 +3771,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日のあきらめない気持ちは、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-074",
@@ -3781,7 +3781,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あきらめない気持ちを守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-075",
@@ -3791,7 +3791,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、あきらめない気持ちを胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-076",
@@ -3801,7 +3801,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、失敗から学んだ答えを信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-077",
@@ -3811,7 +3811,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、失敗から学んだ答えが私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-078",
@@ -3821,7 +3821,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の失敗から学んだ答えは、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-079",
@@ -3831,7 +3831,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "失敗から学んだ答えを守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-080",
@@ -3841,7 +3841,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、失敗から学んだ答えを胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-081",
@@ -3851,7 +3851,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、大切な人の笑顔を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-082",
@@ -3861,7 +3861,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、大切な人の笑顔が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-083",
@@ -3871,7 +3871,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の大切な人の笑顔は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-084",
@@ -3881,7 +3881,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "大切な人の笑顔を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-085",
@@ -3891,7 +3891,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、大切な人の笑顔を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-086",
@@ -3901,7 +3901,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、自分だけの答えを信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-087",
@@ -3911,7 +3911,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、自分だけの答えが私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-088",
@@ -3921,7 +3921,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の自分だけの答えは、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-089",
@@ -3931,7 +3931,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "自分だけの答えを守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-090",
@@ -3941,7 +3941,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、自分だけの答えを胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-091",
@@ -3951,7 +3951,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、新しい世界への扉を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-092",
@@ -3961,7 +3961,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、新しい世界への扉が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-093",
@@ -3971,7 +3971,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の新しい世界への扉は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-094",
@@ -3981,7 +3981,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "新しい世界への扉を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-095",
@@ -3991,7 +3991,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、新しい世界への扉を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-096",
@@ -4001,7 +4001,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "どれほど遠くても、心に決めた目標を信じて進み続ける。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-097",
@@ -4011,7 +4011,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "迷いそうになったとき、心に決めた目標が私の背中を押してくれた。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-098",
@@ -4021,7 +4021,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "あの日の心に決めた目標は、今も心の中で強く輝いている。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-099",
@@ -4031,7 +4031,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "心に決めた目標を守るためなら、もう一度ここから始められる。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-a-100",
@@ -4041,7 +4041,7 @@ const GENERATED_PROMPTS: TypingPrompt[] = [
     "answers": [
       "答えが見えなくても、心に決めた目標を胸に未来へ踏み出そう。"
     ],
-    "note": "オリジナルのアニメ風セリフ"
+    "note": "オリジナルのセリフ"
   },
   {
     "id": "gen-l-001",
