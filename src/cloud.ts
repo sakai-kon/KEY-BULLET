@@ -330,7 +330,16 @@ export async function initializeCloudAccount(): Promise<void> {
 
   try {
     await loadClerkUiBundle();
-    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor as never } });
+    const appHomeUrl = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+    await clerk.load({
+      ui: { ClerkUI: window.__internal_ClerkUICtor as never },
+      // GitHub Pages project sites live below /<repository>/, not at the domain root.
+      // Keep both new sign-ups and returning users inside the deployed app.
+      signInFallbackRedirectUrl: appHomeUrl,
+      signUpFallbackRedirectUrl: appHomeUrl,
+      signInForceRedirectUrl: appHomeUrl,
+      signUpForceRedirectUrl: appHomeUrl,
+    });
     clerkReady = true;
     clerk.addListener(({ user }) => {
       const nextUser = user?.id
