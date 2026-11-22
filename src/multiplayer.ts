@@ -178,7 +178,8 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   async function send(event: string, payload: Record<string, unknown>): Promise<void> {
     if (!channel) return;
     try {
-      await channel.send({ type: 'broadcast', event, payload });
+      const result = await channel.send({ type: 'broadcast', event, payload });
+      if (result !== 'ok') throw new Error('Realtimeがメッセージを受け付けませんでした。');
     } catch (error) {
       setStatus('通信できませんでした：' + errorMessage(error), true);
     }
@@ -280,13 +281,14 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     nextChannel
       .on('presence', { event: 'sync' }, () => { void refreshRoster(); })
       .on('broadcast', { event: 'room-refresh' }, () => { void refreshRoster(); })
-      .on('broadcast', { event: 'room-closed' }, () => {
-        setStatus('ホストがルームを閉じました。');
-        void resetRoom(false);
+      .on('broadcast', { event: 'room-closed' }, ({ payload }) => {
+        if (!room || payload?.closed_by !== room.host_user_id) return;
+        window.setTimeout(() => { void refreshRoom(); }, 350);
       })
       .on('broadcast', { event: 'game-start' }, () => {
-        if (room) room.status = 'playing';
-        enterGame();
+        // The database start state is authoritative; an arbitrary broadcast
+        // must not bypass the host / readiness checks in the RPC.
+        void refreshRoom();
       })
       .on('broadcast', { event: 'pvp-attack' }, ({ payload }) => {
         const attackerId = typeof payload?.user_id === 'string' ? payload.user_id : '';
@@ -309,12 +311,18 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
       })
       .on('broadcast', { event: 'raid-state' }, ({ payload }) => {
         const hp = Number(payload?.hp);
-        if (!Number.isFinite(hp) || !room || room.mode !== 'raid') return;
+        if (
+          !Number.isFinite(hp) ||
+          !room ||
+          room.mode !== 'raid' ||
+          payload?.host_user_id !== room.host_user_id
+        ) return;
         raidHp = Math.max(0, Math.min(RAID_HP_MAX, hp));
         updateHud('LINK RAID / LIVE', `BOSS HP ${Math.ceil(raidHp)} / ${RAID_HP_MAX}`, raidHp / RAID_HP_MAX);
         emit('key-bullet:online-raid-state', { hp: raidHp, maxHp: RAID_HP_MAX });
       })
-      .on('broadcast', { event: 'raid-clear' }, () => {
+      .on('broadcast', { event: 'raid-clear' }, ({ payload }) => {
+        if (!room || room.mode !== 'raid' || payload?.host_user_id !== room.host_user_id) return;
         emit('key-bullet:online-result', { result: 'raid-clear', mode: 'raid' });
       });
 
@@ -388,9 +396,9 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     raidHp = Math.max(0, raidHp - damage);
     updateHud('LINK RAID / LIVE', `BOSS HP ${Math.ceil(raidHp)} / ${RAID_HP_MAX}`, raidHp / RAID_HP_MAX);
     emit('key-bullet:online-raid-state', { hp: raidHp, maxHp: RAID_HP_MAX });
-    await send('raid-state', { hp: raidHp, damage, user_id: attackerId });
+    await send('raid-state', { hp: raidHp, damage, host_user_id: identity.id });
     if (raidHp <= 0) {
-      await send('raid-clear', { cleared_by: String(payload.user_id ?? identity.id) });
+      await send('raid-clear', { host_user_id: identity.id, cleared_by: attackerId });
       emit('key-bullet:online-result', { result: 'raid-clear', mode: 'raid' });
     }
   }
