@@ -49,6 +49,14 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
     '.kb-admin-item-actions { display:flex; gap:6px; }',
     '.kb-admin-status { min-height:20px; color:#9CB5B9; font-size:10px; overflow-wrap:anywhere; }',
     '.kb-admin-close { display:flex; justify-content:flex-end; margin-top:12px; }',
+    '.kb-admin-assist { display:grid; gap:9px; margin:15px 0 20px; padding:13px; border:1px solid rgba(198,154,95,.28); background:rgba(198,154,95,.045); }',
+    '.kb-admin-assist > p { margin:0; }',
+    '.kb-admin-assist-toggle { display:flex !important; align-items:center; gap:10px !important; padding:9px 10px; border:1px solid rgba(198,154,95,.17); background:rgba(3,10,17,.56); cursor:pointer; }',
+    '.kb-admin-assist-toggle input { width:16px; height:16px; accent-color:#C69A5F; }',
+    '.kb-admin-assist-toggle span { display:grid; gap:3px; }',
+    '.kb-admin-assist-toggle strong { color:#EED4AC; font-size:11px; }',
+    '.kb-admin-assist-toggle small { color:#8195A0; font-size:9px; font-weight:400; }',
+    '.kb-admin-assist-status { color:#9CB5B9; font-size:9px; line-height:1.6; }',
     '@media(max-width:560px){ .kb-admin-card{padding:17px;} .kb-admin-item{grid-template-columns:1fr;} .kb-admin-item-actions button{flex:1;} .kb-admin-actions button{flex:1;} }'
   ].join('\n');
   document.head.append(styles);
@@ -78,6 +86,13 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
     '<div class="kb-admin-kicker">KEY BULLET / CONTROL ROOM</div>',
     '<h2 id="kb-admin-title">ADMIN CONTROL</h2>',
     '<p>全プレイヤー向けのお知らせとメンテナンス告知を管理します。公開前に内容を確認してください。</p>',
+    '<section class="kb-admin-assist" aria-label="管理者専用ゲーム補助">',
+    '<div class="kb-admin-kicker">ADMIN ONLY / AUTO PILOT</div>',
+    '<p>自動入力と自動回避を切り替えます。オンライン対戦中は公平性のため自動停止します。</p>',
+    '<label class="kb-admin-assist-toggle"><input id="kb-admin-auto-type" type="checkbox" /> <span><strong>自動入力</strong><small>お題を自動で入力して攻撃</small></span></label>',
+    '<label class="kb-admin-assist-toggle"><input id="kb-admin-auto-dodge" type="checkbox" /> <span><strong>自動回避</strong><small>弾道を予測して安全な方向へ移動</small></span></label>',
+    '<div class="kb-admin-assist-status" id="kb-admin-assist-status">STORY / ENDLESSで利用できます。</div>',
+    '</section>',
     '<form class="kb-admin-form" id="kb-admin-form">',
     '<label>タイトル（60文字以内）<input id="kb-admin-heading" maxlength="60" required /></label>',
     '<label>本文（1,000文字以内）<textarea id="kb-admin-body" maxlength="1000" required></textarea></label>',
@@ -102,6 +117,24 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
   const publishedInput = backdrop.querySelector<HTMLInputElement>('#kb-admin-published')!;
   const list = backdrop.querySelector<HTMLDivElement>('#kb-admin-list')!;
   const status = backdrop.querySelector<HTMLDivElement>('#kb-admin-status')!;
+  const autoType = backdrop.querySelector<HTMLInputElement>('#kb-admin-auto-type')!;
+  const autoDodge = backdrop.querySelector<HTMLInputElement>('#kb-admin-auto-dodge')!;
+  const assistStatus = backdrop.querySelector<HTMLDivElement>('#kb-admin-assist-status')!;
+
+  function dispatchAssistSettings(): void {
+    window.dispatchEvent(new CustomEvent('key-bullet:admin-assist', {
+      detail: {
+        autoTyping: autoType.checked,
+        autoDodge: autoDodge.checked,
+      },
+    }));
+    assistStatus.textContent = autoType.checked || autoDodge.checked
+      ? '有効：通常のSTORY / ENDLESSで動作します。オンライン対戦では自動停止します。'
+      : '自動入力・自動回避はOFFです。';
+  }
+
+  autoType.addEventListener('change', dispatchAssistSettings);
+  autoDodge.addEventListener('change', dispatchAssistSettings);
 
   function setStatus(message: string): void {
     status.textContent = message;
@@ -268,7 +301,15 @@ export function initializeAdminPanel(supabase: SupabaseClient): AdminPanelContro
     setAdminEnabled(enabled: boolean): void {
       adminEnabled = enabled;
       trigger.hidden = !enabled;
-      if (!enabled) backdrop.hidden = true;
+      if (!enabled) {
+        backdrop.hidden = true;
+        autoType.checked = false;
+        autoDodge.checked = false;
+      }
+      window.dispatchEvent(new CustomEvent('key-bullet:admin-access', {
+        detail: { enabled },
+      }));
+      dispatchAssistSettings();
     }
   };
 }
