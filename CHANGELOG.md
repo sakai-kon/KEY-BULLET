@@ -2,6 +2,11 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.4.4] - 2026-11-22
+
+- Improved Japanese furigana legibility with larger, higher-contrast readings and more spacing above the prompt text.
+- Kept furigana optional, remembered its ON/OFF preference, and left code prompts unaffected.
+
 ## [0.4.3] - 2026-11-22
 
 - Rebalanced EASY into a super-beginner mode: 9 lives, 6 bombs, shorter bullet phases, much fewer and slower bullets, wider hit forgiveness, and longer invulnerability.
