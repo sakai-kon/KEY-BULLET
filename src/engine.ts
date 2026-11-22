@@ -114,10 +114,12 @@ export class GameEngine {
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     this.ctx.imageSmoothingEnabled = false;
-    this.stars = Array.from({ length: 72 }, () => ({
+    // A much denser starfield, with a few larger points for depth.
+    this.stars = Array.from({ length: 210 }, () => ({
       x: Math.random() * WIDTH, y: Math.random() * HEIGHT,
-      speed: 12 + Math.random() * 28, alpha: 0.12 + Math.random() * 0.55,
-      size: Math.random() > 0.8 ? 2 : 1,
+      speed: 7 + Math.random() * 22,
+      alpha: 0.09 + Math.random() * 0.43,
+      size: Math.random() > 0.978 ? 3 : Math.random() > 0.76 ? 2 : 1,
     }));
     this.raf = requestAnimationFrame(this.loop);
   }
