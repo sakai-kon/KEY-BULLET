@@ -222,7 +222,7 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     $('#kb-online-ready').hidden = room.status !== 'waiting';
     const startButton = $('#kb-online-start') as HTMLButtonElement;
     startButton.hidden = !isHost || room.status !== 'waiting';
-    startButton.disabled = members.length < 2 || members.length !== room.max_players && members.some((m) => !m.is_ready) || members.some((m) => !m.is_ready);
+    startButton.disabled = members.length < 2 || members.some((member) => !member.is_ready);
     if (room.status === 'playing' && !matchActive) enterGame();
   }
 
@@ -535,6 +535,13 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     }
   });
 
+  window.addEventListener('key-bullet:online-match-exit', () => {
+    void (async () => {
+      if (room && identity?.id === room.host_user_id) await send('room-closed', { closed_by: identity.id });
+      await resetRoom(true);
+    })();
+  });
+
   window.addEventListener('key-bullet:online-player-out', () => {
     if (!room || !identity || !channel || !matchActive || room.mode !== 'pvp') return;
     void send('player-out', { user_id: identity.id });
@@ -549,7 +556,7 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     }
   });
 
-  backdrop.querySelector<HTMLButtonElement>('#kb-online-code-input')?.addEventListener('keydown', (event) => {
+  backdrop.querySelector<HTMLInputElement>('#kb-online-code-input')?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') void joinRoom();
   });
 
@@ -557,8 +564,8 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     setIdentity(nextIdentity): void {
       const previousId = identity?.id ?? null;
       identity = nextIdentity;
-      trigger.disabled = !identity;
-      trigger.title = identity ? 'オンラインロビー' : 'オンライン対戦にはログインが必要です';
+      trigger.disabled = false;
+      trigger.title = identity ? 'オンラインロビー' : 'ACCOUNTからログインするとオンライン対戦できます';
       if (previousId && nextIdentity?.id !== previousId && room) {
         void resetRoom(false);
       }
