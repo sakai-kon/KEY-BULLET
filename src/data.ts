@@ -1,4 +1,4 @@
-export type Genre = 'code' | 'anime' | 'random' | 'short' | 'long';
+export type Genre = 'code' | 'anime' | 'random' | 'short' | 'long' | 'wisdom';
 
 export const GENRES: { id: Genre; label: string; sub: string; code: string }[] = [
   { id: 'code', label: 'CODE', sub: 'Syntax / Logic', code: '01' },
@@ -6,6 +6,7 @@ export const GENRES: { id: Genre; label: string; sub: string; code: string }[] =
   { id: 'random', label: 'RANDOM', sub: 'Mixed challenge', code: '03' },
   { id: 'short', label: 'SHORT TEXT', sub: 'Everyday Japanese', code: '04' },
   { id: 'long', label: 'LONG TEXT', sub: 'Long-form typing', code: '05' },
+  { id: 'wisdom', label: 'IT WISDOM', sub: 'Developer Quotes', code: '06' },
 ];
 
 export interface TypingPrompt {
@@ -5165,6 +5166,106 @@ const CLASSIC_ANIME_PROMPTS: TypingPrompt[] = CLASSIC_ANIME_LINES.map((display, 
 PROMPTS.push(...GENERATED_PROMPTS);
 PROMPTS.push(...CLASSIC_ANIME_PROMPTS);
 
+
+const IT_WISDOM_QUOTES: Array<{ person: string; display: string }> = [
+  { person: 'リーナス・トーバルズ', display: 'おしゃべりは安い。コードを見せろ。' },
+  { person: 'リーナス・トーバルズ', display: '悪いプログラマはコードのことを心配する。優れたプログラマはデータ構造とその関係性のことを心配する。' },
+  { person: 'リーナス・トーバルズ', display: '十分な目玉があれば、すべてのバグは浅くなる。' },
+  { person: 'リーナス・トーバルズ', display: '知性は、自分の無知をどれだけ正確に把握しているかによって測られる。' },
+  { person: 'リーナス・トーバルズ', display: 'ソフトウェアはセックスと同じだ。タダ（無料）の方がいいに決まっている。' },
+
+  { person: 'マーティン・ファウラー', display: 'コンピュータが理解できるコードは誰でも書ける。優れたプログラマは、人間が理解できるコードを書く。' },
+  { person: 'マーティン・ファウラー', display: '設計の優れたソフトウェアとは、変更しやすいソフトウェアのことだ。' },
+  { person: 'マーティン・ファウラー', display: 'リファクタリングとは、外部から見たときの振る舞いを保ちつつ、理解や修正が簡単になるようにソフトウェアの内部構造を変化させることである。' },
+  { person: 'マーティン・ファウラー', display: '愚か者でも使えるツールは、愚か者しか使いたがらない。' },
+
+  { person: 'ドナルド・クヌース', display: '早すぎる最適化は諸悪の根源である。' },
+  { person: 'ドナルド・クヌース', display: '上記のコードのバグには気をつけてください。私はそれが正しいことを証明しただけで、まだ動かしてはいませんから。' },
+  { person: 'ドナルド・クヌース', display: 'プログラミングとは、私たちが人間に対して、コンピュータに何をさせたいかを説明する芸術である。' },
+  { person: 'ドナルド・クヌース', display: '科学とは私たちが十分に理解し、コンピュータに説明できる知識である。芸術とはそれ以外のすべてである。' },
+
+  { person: 'ケン・トンプソン', display: '迷ったときは、力技を使え。' },
+  { person: 'ケン・トンプソン', display: '私の人生で最も生産的だった日のひとつは、1,000行のコードを捨てた日だ。' },
+  { person: 'ケン・トンプソン', display: 'ソースコードを自分で書いていないプログラムは、決して信用するな。' },
+
+  { person: 'グレース・ホッパー', display: '許可を求めるより、謝罪する方が簡単だ。' },
+  { person: 'グレース・ホッパー', display: '英語で最も危険な言葉は「ずっとそうやってきたから」だ。' },
+  { person: 'グレース・ホッパー', display: '港に停泊している船は安全だ。しかし、船は港にいるために作られたのではない。' },
+  { person: 'グレース・ホッパー', display: '一人の正確な測定は、千人の専門家の意見に勝る。' },
+
+  { person: 'まつもとゆきひろ', display: '楽しさ（Fun）を最優先に設計した。' },
+  { person: 'まつもとゆきひろ', display: '人間はコンピュータの奴隷ではなく、主人であるべきだ。' },
+  { person: 'まつもとゆきひろ', display: '変化を恐れないこと。ソフトウェアは生き物であり、常に進化し続けなければならない。' },
+  { person: 'まつもとゆきひろ', display: '良いコードとは、読んだときに作者の意図が自然に伝わってくるコードだ。' },
+
+  { person: '宮本茂', display: 'アイデアというのは複数の問題を一気に解決するものである。' },
+  { person: '宮本茂', display: '遅れて出た良いゲームはいつまでも良いゲームだが、急いで出した悪いゲームはいつまでも悪いゲームだ。' },
+  { person: '宮本茂', display: '自分が面白いと思えるものを作らなければ、他の人が面白いと思うはずがない。' },
+  { person: '宮本茂', display: '説明書を読まなくても遊べるように作るのが理想。' },
+
+  { person: 'スティーブ・ジョブズ', display: 'ハングリーであれ。愚か者であれ。' },
+  { person: 'スティーブ・ジョブズ', display: '点と点をつなげることは、先を見通してできることではない。後になって振り返ったときにだけできることだ。' },
+  { person: 'スティーブ・ジョブズ', display: 'もし今日が人生最後の日だとしたら、今やろうとしていることは本当に自分のやりたいことだろうか？' },
+  { person: 'スティーブ・ジョブズ', display: 'シンプルであることは、複雑であることよりも難しい。' },
+  { person: 'スティーブ・ジョブズ', display: '重要なのは、1,000のことに「ノー」と言うことだ。' },
+  { person: 'スティーブ・ジョブズ', display: '優れた芸術家は模倣し、偉大な芸術家は盗む。' },
+  { person: 'スティーブ・ジョブズ', display: '顧客は、形にして見せてもらうまで自分が何を欲しいのか分かっていないものだ。' },
+
+  { person: 'ビル・ゲイツ', display: '私は難しい仕事には、いつも怠け者を選ぶ。なぜなら、怠け者はその仕事を簡単にする方法を見つけるからだ。' },
+  { person: 'ビル・ゲイツ', display: '最も不満を持っている顧客こそが、あなたの最大の学びの源である。' },
+  { person: 'ビル・ゲイツ', display: '成功は最低の教師だ。賢い人たちを誘惑し、自分は負けないと思い込ませてしまう。' },
+  { person: 'ビル・ゲイツ', display: '人間は1年でできることを過大評価し、10年でできることを過小評価する。' },
+  { person: 'ビル・ゲイツ', display: '効率的な業務の自動化は効率を拡大し、非効率な業務の自動化は非効率を拡大する。' },
+  { person: 'ビル・ゲイツ', display: 'プログラムの進捗をコードの行数で測ることは、飛行機の製造進捗を重さで測るようなものだ。' },
+  { person: 'ビル・ゲイツ', display: 'この世の誰とも自分を比べてはいけない。それは自分自身に対する侮辱だ。' },
+
+  { person: 'マーク・ザッカーバーグ', display: '完璧を目指すより、まず終わらせろ。' },
+  { person: 'マーク・ザッカーバーグ', display: '最大のリスクは、一切のリスクを取らないことだ。' },
+  { person: 'マーク・ザッカーバーグ', display: '速く動き、物事を壊せ。' },
+  { person: 'マーク・ザッカーバーグ', display: '偉大な成功は、失敗する自由から生まれる。' },
+  { person: 'マーク・ザッカーバーグ', display: '人々は、君が何を言っているかなんて気にしない。重要なのは、君が何を作ったかだ。' },
+  { person: 'マーク・ザッカーバーグ', display: '理想主義だけでは十分ではない。現実的でなければならないが、目的意識を持ち続けろ。' },
+
+  { person: 'イーロン・マスク', display: '失敗はここでの選択肢の一つだ。もし何も失敗していないのなら、十分に革新的ではないということだ。' },
+  { person: 'イーロン・マスク', display: '何かがあなたにとって十分に重要であるなら、たとえ勝ち目がなくてもやるべきだ。' },
+  { person: 'イーロン・マスク', display: '「類推」ではなく、「第一原理（ファースト・プリンシプル）」から物事を考えろ。' },
+  { person: 'イーロン・マスク', display: '偉大な企業は、偉大なプロダクトの上に築かれる。' },
+  { person: 'イーロン・マスク', display: 'フィードバックループを持つことが非常に重要だ。自分がやってきたことと、どうすればもっと良くできるかを常に考え続けろ。' },
+  { person: 'イーロン・マスク', display: '忍耐は非常に重要だ。諦めることを強いられない限り、決して諦めてはいけない。' },
+
+  { person: 'ジェフ・ベゾス', display: '変わらないものを軸に戦略を立てよ。' },
+  { person: 'ジェフ・ベゾス', display: 'いつも「Day 1（1日目）」である。' },
+  { person: 'ジェフ・ベゾス', display: '賢さは才能だが、優しさは選択だ。' },
+  { person: 'ジェフ・ベゾス', display: '私たちの成功は、年間、月間、週間、日間にどれだけ多くの実験を行うかの関数である。' },
+  { person: 'ジェフ・ベゾス', display: '批判されたくないのなら、新しいことは何もしないことだ。' },
+  { person: 'ジェフ・ベゾス', display: 'あなたのブランドとは、あなたがその部屋にいないときに人々があなたについて語る言葉のことだ。' },
+
+  { person: 'ラリー・ペイジ', display: '夢が非現実的であるほど、ライバルは減る。' },
+  { person: 'ラリー・ペイジ', display: 'アイデアに価値はない。それを実行できて初めて価値になる。' },
+  { person: 'ラリー・ペイジ', display: '常に期待されている以上のものを提供せよ。' },
+  { person: 'セルゲイ・ブリン', display: '失敗を恐れるな。成功するためには、頻繁に失敗しなければならない。' },
+  { person: 'セルゲイ・ブリン', display: '成功は単純さから生まれる。' },
+  { person: 'セルゲイ・ブリン', display: '世界を良くしたいと本気で思うなら、技術の力を使えば一人でもそれを成し遂げられる。' },
+
+  { person: 'ジェンスン・フアン', display: '走れ、歩くな。' },
+  { person: 'ジェンスン・フアン', display: 'AIに職を奪われるのではない。AIを使う人に職を奪われるのだ。' },
+  { person: 'ジェンスン・フアン', display: '偉大さは知能から生まれるのではない。人格から生まれ、人格は苦しみによって鍛えられる。' },
+  { person: 'ジェンスン・フアン', display: '私たちの会社は、常に倒産まであと30日である。' },
+  { person: 'ジェンスン・フアン', display: 'ソフトウェアが世界を飲み込む時代から、AIがソフトウェアを飲み込む時代になった。' },
+  { person: 'ジェンスン・フアン', display: '失敗を恥じるな。失敗を隠すことを恥じろ。' },
+];
+
+const IT_WISDOM_PROMPTS: TypingPrompt[] = IT_WISDOM_QUOTES.map((quote, index) => ({
+  id: 'wisdom-' + String(index + 1).padStart(3, '0'),
+  genre: 'wisdom',
+  title: 'IT WISDOM / ' + String(index + 1).padStart(3, '0'),
+  display: quote.display,
+  answers: [quote.display],
+  note: quote.person + '｜提供された一覧に基づく収録（原典・訳文は未照合）',
+}));
+
+PROMPTS.push(...IT_WISDOM_PROMPTS);
+
 let ADMIN_PROMPTS: TypingPrompt[] = [];
 
 /** Replace the published custom prompt set loaded from the public game API. */
@@ -5205,6 +5306,7 @@ export const PROMPT_STATS = {
     anime: PROMPTS.filter((prompt) => prompt.genre === 'anime').length,
     short: PROMPTS.filter((prompt) => prompt.genre === 'short').length,
     long: PROMPTS.filter((prompt) => prompt.genre === 'long').length,
+    wisdom: PROMPTS.filter((prompt) => prompt.genre === 'wisdom').length,
   },
 };
 
