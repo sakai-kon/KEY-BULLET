@@ -2,7 +2,7 @@ import './style.css';
 import { GENRES, getGenreLabel, getPrompt, bestPrefixLength, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
-import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats, verifyProfilePasscode } from './persistence';
+import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats } from './persistence';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found.');
@@ -588,7 +588,6 @@ $('#transfer-action').addEventListener('click', async () => {
       const profile = loadUserProfile();
       const passcode = ($('#transfer-passcode') as HTMLInputElement).value;
       if (!profile) throw new Error('先にPROFILEからユーザー名とパスコードを設定してください。');
-      if (!await verifyProfilePasscode(passcode, profile)) throw new Error('登録したパスコードが一致しません。');
       area.value = await exportTransferCode(loadStats(), profile, passcode);
       $('#transfer-message').textContent = '暗号化した引き継ぎコードを作成しました。コピーして新しい端末へ移してください。';
       await copyText(area.value);
