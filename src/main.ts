@@ -337,6 +337,7 @@ let selectedGenre: Genre = 'random';
 let prompt: TypingPrompt | null = null;
 let currentPhase: GamePhase = 'ended';
 let currentMode: 'STORY' | 'ENDLESS' = 'STORY';
+let onlineMatchMode: 'pvp' | 'raid' | null = null;
 let phaseStartedAt = 0;
 let clockFrame = 0;
 let previousInputValue = '';
@@ -537,11 +538,18 @@ $('#typing-form').addEventListener('submit', (event) => {
   $('#metric-accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
   $('#metric-power').textContent = `${metrics.power.toFixed(2)}x`;
   game.fire(metrics.power, chars, metrics.accuracy);
+  if (onlineMatchMode) {
+    window.dispatchEvent(new CustomEvent('key-bullet:online-local-attack', {
+      detail: { power: metrics.power, chars, accuracy: metrics.accuracy },
+    }));
+  }
   audio.play('shot');
 });
 
 function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   currentMode = mode;
+  game.setOnlineMode(onlineMatchMode);
+  $('#result-retry').toggleAttribute('hidden', onlineMatchMode !== null);
   bestAccuracy = 0;
   void audio.start('typing');
   showScreen('game');
@@ -555,6 +563,27 @@ function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
 
 function finishRun(reason: EndReason): void {
   const snapshot = game.getSnapshot();
+  if (onlineMatchMode) {
+    const isRaidClear = onlineMatchMode === 'raid' && reason === 'clear';
+    $('#result-overline').textContent = onlineMatchMode === 'raid' ? 'LINK RAID / RESULT' : 'PVP / RESULT';
+    $('#result-title').textContent = isRaidClear ? 'RAID CLEAR' : reason === 'clear' ? 'SYSTEM CLEAR' : 'SIGNAL LOST';
+    $('#result-description').textContent = isRaidClear
+      ? '参加者全員でボスを撃破しました。βテストのご協力ありがとう！'
+      : onlineMatchMode === 'pvp'
+        ? '対戦が終了しました。次のテストではバランスを調整します。'
+        : '戦闘不能になりました。チームの戦闘は続行できます。';
+    $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
+    $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
+    $('#result-stage').textContent = onlineMatchMode === 'raid' ? 'LINK RAID' : 'PVP';
+    $('#result-retry').setAttribute('hidden', 'true');
+    $('#result-menu').textContent = 'BACK TO MENU';
+    showScreen('result');
+    audio.play(isRaidClear ? 'clear' : 'hit');
+    if (onlineMatchMode === 'pvp' && reason === 'gameover') {
+      window.dispatchEvent(new Event('key-bullet:online-player-out'));
+    }
+    return;
+  }
   const prev = loadStats();
   latestStats = updateStats({
     totalRuns: prev.totalRuns + 1,
@@ -691,6 +720,9 @@ $('#home-play').addEventListener('click', () => showScreen('menu'));
 $('#home-record-open').addEventListener('click', openRecordModal);
 $('#menu-home').addEventListener('click', () => showScreen('home'));
 $('#game-menu').addEventListener('click', () => {
+  window.dispatchEvent(new Event('key-bullet:online-match-exit'));
+  onlineMatchMode = null;
+  game.setOnlineMode(null);
   game.stop();
   currentPhase = 'ended';
   updateTypingPanelState();
@@ -702,6 +734,11 @@ $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
 $('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
 $('#result-retry').addEventListener('click', () => beginRun(currentMode));
 $('#result-menu').addEventListener('click', () => {
+  window.dispatchEvent(new Event('key-bullet:online-match-exit'));
+  onlineMatchMode = null;
+  game.setOnlineMode(null);
+  $('#result-retry').removeAttribute('hidden');
+  $('#result-menu').textContent = 'BACK TO MENU';
   game.stop();
   $('#system-status').textContent = 'SYSTEM STANDBY';
   currentPhase = 'ended';
@@ -810,6 +847,53 @@ function updateClock(): void {
   }
   clockFrame = requestAnimationFrame(updateClock);
 }
+
+window.addEventListener('key-bullet:online-start', (event) => {
+  const detail = (event as CustomEvent<{ mode: 'pvp' | 'raid' }>).detail;
+  if (!detail || !['pvp', 'raid'].includes(detail.mode)) return;
+  onlineMatchMode = detail.mode;
+  beginRun('STORY');
+  if (detail.mode === 'raid') game.setOnlineBossHp(1400, 1400);
+  $('#typing-feedback').textContent = detail.mode === 'pvp'
+    ? 'PVP開始！ お題を正確に入力して攻撃。相手の攻撃を3回受けると敗北。'
+    : 'LINK RAID開始！ 全員のタイピング攻撃で共有ボスHPを削ろう。';
+});
+
+window.addEventListener('key-bullet:online-pvp-hit', () => {
+  if (onlineMatchMode === 'pvp') game.applyOnlineHit();
+});
+
+window.addEventListener('key-bullet:online-raid-state', (event) => {
+  if (onlineMatchMode !== 'raid') return;
+  const detail = (event as CustomEvent<{ hp: number; maxHp: number }>).detail;
+  if (detail && Number.isFinite(detail.hp)) game.setOnlineBossHp(detail.hp, detail.maxHp);
+});
+
+window.addEventListener('key-bullet:online-result', (event) => {
+  const detail = (event as CustomEvent<{ result: string; mode?: string }>).detail;
+  if (!detail || !['win', 'lose', 'raid-clear'].includes(detail.result)) return;
+  if (detail.result === 'raid-clear' && onlineMatchMode === 'raid' && lastSnapshot?.active) {
+    game.setOnlineBossHp(0, 1400);
+  } else if (detail.result !== 'raid-clear') {
+    game.stop();
+  }
+  const snapshot = game.getSnapshot();
+  $('#result-overline').textContent = detail.result === 'raid-clear' ? 'LINK RAID / RESULT' : 'PVP / RESULT';
+  $('#result-title').textContent = detail.result === 'raid-clear' ? 'RAID CLEAR' : detail.result === 'win' ? 'VICTORY' : 'DEFEAT';
+  $('#result-description').textContent = detail.result === 'raid-clear'
+    ? 'チーム全員でボスを撃破しました。'
+    : detail.result === 'win' ? '対戦相手のライフがなくなりました。' : 'ライフがなくなりました。次の対戦で再挑戦しよう。';
+  $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
+  $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
+  $('#result-stage').textContent = detail.result === 'raid-clear' ? 'LINK RAID' : 'PVP';
+  $('#result-retry').setAttribute('hidden', 'true');
+  $('#result-menu').textContent = 'BACK TO MENU';
+  currentPhase = 'ended';
+  updateTypingPanelState();
+  showScreen('result');
+  onlineMatchMode = null;
+  game.setOnlineMode(null);
+});
 
 initializeCloudAccount();
 renderCareer();
