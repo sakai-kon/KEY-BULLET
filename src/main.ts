@@ -2,7 +2,8 @@ import './style.css';
 
 declare const __APP_VERSION__: string;
 import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, countNewMistakes, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
-import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
+import { GameEngine, type EndReason, type GameDifficulty, type GamePhase, type GameSnapshot } from './engine';
+import { renderPromptWithFurigana } from './furigana';
 import { AudioSystem } from './audio';
 import { initializeCloudAccount } from './cloud';
 import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats } from './persistence';
@@ -60,7 +61,7 @@ app.innerHTML = `
           <div class="panel typing-panel" id="typing-panel">
             <div class="typing-header">
               <div><div class="panel-id">02 / SPELL INPUT</div><div class="typing-headline" id="prompt-title">AWAITING SIGNAL</div></div>
-              <div class="typing-meta"><span id="prompt-genre">NO PROMPT</span><span class="meta-divider"></span><span id="prompt-clock">00.00s</span></div>
+              <div class="typing-meta"><span id="prompt-genre">NO PROMPT</span><span class="meta-divider"></span><span id="prompt-clock">00.00s</span><button class="furigana-toggle" id="furigana-toggle" type="button" aria-pressed="true">ふりがな ON</button></div>
             </div>
             <div class="prompt-display" id="prompt-display">モードを選択すると、ここにタイピングのお題が表示される。</div>
             <div class="prompt-note" id="prompt-note">全617件のお題から出題。日本語はIMEで変換して入力。</div>
@@ -76,6 +77,14 @@ app.innerHTML = `
         <aside class="side-column">
           <div class="panel mode-panel" id="mode-panel">
             <div class="panel-heading"><span class="panel-id">03 / SELECT MODE</span><span class="tiny-state">READY</span></div>
+            <div class="difficulty-picker">
+              <div class="difficulty-title"><span>DIFFICULTY</span><strong>難易度</strong></div>
+              <div class="difficulty-options" role="group" aria-label="難易度">
+                <button class="difficulty-option selected" id="difficulty-normal" type="button" aria-pressed="true"><strong>NORMAL</strong><small>標準</small></button>
+                <button class="difficulty-option" id="difficulty-easy" type="button" aria-pressed="false"><strong>EASY</strong><small>超かんたん</small></button>
+              </div>
+              <p class="difficulty-description" id="difficulty-description">通常の難易度でプレイします。</p>
+            </div>
             <button class="mode-card" id="story-start" type="button">
               <span class="mode-index">A</span><span class="mode-main"><strong>STORY</strong><small>3 STAGES / FINAL BOSS</small></span><span class="mode-arrow">↗</span>
             </button>
@@ -337,6 +346,14 @@ let selectedGenre: Genre = 'random';
 let prompt: TypingPrompt | null = null;
 let currentPhase: GamePhase = 'ended';
 let currentMode: 'STORY' | 'ENDLESS' = 'STORY';
+let currentDifficulty: GameDifficulty = (() => {
+  try { return localStorage.getItem('key-bullet:difficulty') === 'easy' ? 'easy' : 'normal'; }
+  catch { return 'normal'; }
+})();
+let furiganaEnabled = (() => {
+  try { return localStorage.getItem('key-bullet:furigana') !== 'off'; }
+  catch { return true; }
+})();
 let onlineMatchMode: 'pvp' | 'raid' | null = null;
 let adminAssistAccess = false;
 let adminAutoTyping = false;
@@ -391,6 +408,30 @@ const game = new GameEngine(canvas, {
     $('#typing-feedback').textContent = 'SEGMENT BREAK — 次の詠唱を入力。';
   },
 });
+
+
+function renderDifficultySelection(): void {
+  const normal = $('#difficulty-normal');
+  const easy = $('#difficulty-easy');
+  normal.classList.toggle('selected', currentDifficulty === 'normal');
+  easy.classList.toggle('selected', currentDifficulty === 'easy');
+  normal.setAttribute('aria-pressed', String(currentDifficulty === 'normal'));
+  easy.setAttribute('aria-pressed', String(currentDifficulty === 'easy'));
+  $('#difficulty-description').textContent = currentDifficulty === 'easy'
+    ? '敵弾が少なく遅い、残機5・ボム4の超かんたん設定。'
+    : '通常の難易度でプレイします。';
+}
+
+function renderPromptDisplay(): void {
+  if (!prompt) return;
+  const display = $('#prompt-display');
+  renderPromptWithFurigana(display, prompt.display, furiganaEnabled && !prompt.isCode);
+  display.classList.toggle('code-prompt', Boolean(prompt.isCode));
+  const toggle = $('#furigana-toggle') as HTMLButtonElement;
+  toggle.hidden = Boolean(prompt.isCode);
+  toggle.textContent = furiganaEnabled ? 'ふりがな ON' : 'ふりがな OFF';
+  toggle.setAttribute('aria-pressed', String(furiganaEnabled));
+}
 
 function stopAutoTyping(): void {
   if (autoTypingInterval) window.clearInterval(autoTypingInterval);
@@ -454,9 +495,7 @@ function setupNewPrompt(): void {
   missCount = 0;
   $('#prompt-title').textContent = prompt.title;
   $('#prompt-genre').textContent = getGenreLabel(prompt.genre);
-  const display = $('#prompt-display');
-  display.textContent = prompt.display;
-  display.classList.toggle('code-prompt', Boolean(prompt.isCode));
+  renderPromptDisplay();
   $('#prompt-note').textContent = prompt.note;
   const typingInput = $('#typing-input') as HTMLInputElement;
   typingInput.value = '';
@@ -613,6 +652,7 @@ function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   currentMode = mode;
   stopAutoTyping();
   game.setOnlineMode(onlineMatchMode);
+  game.setDifficulty(onlineMatchMode === null ? currentDifficulty : 'normal');
   game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
   $('#result-retry').toggleAttribute('hidden', onlineMatchMode !== null);
   bestAccuracy = 0;
@@ -795,6 +835,23 @@ $('#game-menu').addEventListener('click', () => {
   $('#system-status').textContent = 'SYSTEM STANDBY';
   showScreen('home');
 });
+$('#difficulty-normal').addEventListener('click', () => {
+  currentDifficulty = 'normal';
+  try { localStorage.setItem('key-bullet:difficulty', currentDifficulty); } catch { /* Setting remains active for this session. */ }
+  renderDifficultySelection();
+});
+$('#difficulty-easy').addEventListener('click', () => {
+  currentDifficulty = 'easy';
+  try { localStorage.setItem('key-bullet:difficulty', currentDifficulty); } catch { /* Setting remains active for this session. */ }
+  renderDifficultySelection();
+});
+$('#furigana-toggle').addEventListener('click', () => {
+  furiganaEnabled = !furiganaEnabled;
+  try { localStorage.setItem('key-bullet:furigana', furiganaEnabled ? 'on' : 'off'); } catch { /* Setting remains active for this session. */ }
+  renderPromptDisplay();
+});
+renderDifficultySelection();
+
 $('#story-start').addEventListener('click', () => beginRun('STORY'));
 $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
 $('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
