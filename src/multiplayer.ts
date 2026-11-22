@@ -44,7 +44,10 @@ function errorMessage(error: unknown): string {
   return '通信エラーが発生しました。';
 }
 
-export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerController {
+export function initializeMultiplayer(
+  supabase: SupabaseClient,
+  getAccessToken: () => Promise<string | null>,
+): MultiplayerController {
   const topActions = document.querySelector<HTMLElement>('.top-actions');
   if (!topActions) return { setIdentity: () => undefined };
 
@@ -389,9 +392,13 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     if (previousChannel) await supabase.removeChannel(previousChannel);
     if (!isCurrentRoom(roomId, generation) || !identity) return;
 
-    // Force the configured Clerk accessToken callback to populate Realtime auth
-    // before joining a private room topic.
-    await supabase.realtime.setAuth();
+    // Realtime does not reliably inherit the third-party token from the REST client.
+    // Pass the current Clerk JWT explicitly so private-channel RLS sees the real user.
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      throw new Error('Clerkの認証トークンを取得できません。ログイン状態を確認して再試行してください。');
+    }
+    await supabase.realtime.setAuth(accessToken);
     if (!isCurrentRoom(roomId, generation) || !identity) return;
 
     const userId = identity.id;
