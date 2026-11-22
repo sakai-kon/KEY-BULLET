@@ -1,7 +1,7 @@
 import './style.css';
 
 declare const __APP_VERSION__: string;
-import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
+import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, countNewMistakes, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
 import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats } from './persistence';
@@ -66,7 +66,7 @@ app.innerHTML = `
             <form id="typing-form" autocomplete="off">
               <label class="sr-only" for="typing-input">Type the prompt</label>
               <div class="input-wrap"><span class="input-prefix">&gt;_</span><input id="typing-input" type="text" autocapitalize="off" spellcheck="false" placeholder="ここに入力して Enter で発射" disabled /><span class="input-ready" id="input-ready">LOCKED</span></div>
-              <div class="typing-bottom"><span id="typing-feedback">PHASE 01 では時間制限なし。正確に入力してショットを強化。</span><button class="fire-button" id="fire-button" type="submit" disabled>FIRE <span>↗</span></button></div>
+              <div class="typing-bottom"><span id="typing-feedback" aria-live="polite">PHASE 01 では時間制限なし。正確に入力してショットを強化。</span><button class="fire-button" id="fire-button" type="submit" disabled>FIRE <span>↗</span></button></div>
             </form>
             <div class="typing-metrics"><div><span>WPM</span><strong id="metric-wpm">—</strong></div><div><span>ACCURACY</span><strong id="metric-accuracy">—</strong></div><div><span>POWER</span><strong id="metric-power">—</strong></div><div><span>MISSES</span><strong id="metric-misses">00</strong></div></div>
           </div>
@@ -340,6 +340,7 @@ let phaseStartedAt = 0;
 let clockFrame = 0;
 let previousInputValue = '';
 let isImeComposing = false;
+let suppressImeEnterSubmit = false;
 let missCount = 0;
 let bestAccuracy = 0;
 let lastSnapshot: GameSnapshot | null = null;
@@ -387,6 +388,8 @@ function setupNewPrompt(): void {
   prompt = getPrompt(selectedGenre);
   phaseStartedAt = performance.now();
   previousInputValue = '';
+  isImeComposing = false;
+  suppressImeEnterSubmit = false;
   missCount = 0;
   $('#prompt-title').textContent = prompt.title;
   $('#prompt-genre').textContent = getGenreLabel(prompt.genre);
@@ -437,7 +440,7 @@ function renderSnapshot(snapshot: GameSnapshot): void {
 function calculateTyping(inputValue: string): { accuracy: number; speed: number; power: number; correct: boolean } {
   if (!prompt) return { accuracy: 0, speed: 0, power: 0.65, correct: false };
   const elapsed = Math.max(0.2, (performance.now() - phaseStartedAt) / 1000);
-  const typedLength = normalizeTyping(inputValue, Boolean(prompt.isCode)).length;
+  const typedLength = Array.from(normalizeTyping(inputValue, Boolean(prompt.isCode))).length;
   const accuracy = typedLength === 0 ? 100 : Math.max(0, Math.min(100, ((typedLength - missCount) / typedLength) * 100));
   const speed = typedLength / elapsed;
   const power = Math.max(0.65, Math.min(3.4, 0.65 + speed * 0.34 + (accuracy / 100) * 1.55));
@@ -448,24 +451,23 @@ function updateTypingInput(): void {
   if (!prompt || currentPhase !== 'typing' || isImeComposing) return;
   const input = $('#typing-input') as HTMLInputElement;
   const value = input.value;
-  const metrics = calculateTyping(value);
-  const prefixOk = hasPotentialPrefix(value, prompt.answers, Boolean(prompt.isCode));
+  const isCode = Boolean(prompt.isCode);
+  const newMistakes = countNewMistakes(previousInputValue, value, prompt.answers, isCode);
 
-  // IMEの変換確定後にだけ判定し、変換途中の仮入力をミス扱いしない。
-  if (value.length > previousInputValue.length && value.startsWith(previousInputValue)) {
-    let candidate = previousInputValue;
-    for (const char of value.slice(previousInputValue.length)) {
-      candidate += char;
-      if (!hasPotentialPrefix(candidate, prompt.answers, Boolean(prompt.isCode))) {
-        missCount++;
-        game.addMistake();
-        audio.play('error');
-      } else {
-        audio.play('type');
-      }
-    }
+  // A committed typo adds one mistake when the input first leaves the valid-prefix path.
+  // Keep the field red until the player edits it back to a valid prefix.
+  if (newMistakes > 0) {
+    missCount += newMistakes;
+    game.addMistake();
+    audio.play('error');
+  } else if (value !== previousInputValue) {
+    audio.play('type');
   }
   previousInputValue = value;
+
+  // Calculate after updating the mistake count so the displayed accuracy is current.
+  const metrics = calculateTyping(value);
+  const prefixOk = hasPotentialPrefix(value, prompt.answers, isCode);
 
   $('#metric-wpm').textContent = String(Math.round(metrics.speed * 12));
   $('#metric-accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
@@ -476,7 +478,7 @@ function updateTypingInput(): void {
   const feedback = $('#typing-feedback');
   feedback.classList.toggle('is-error', !prefixOk);
   feedback.textContent = !prefixOk
-    ? '入力ミス：お題と違う文字があります。Backspaceで修正してください。'
+    ? '入力ミス：お題と違う文字があります。Backspaceで正しい位置まで戻して修正してください。'
     : metrics.correct
       ? 'INPUT COMPLETE — ENTER でショットを発射。'
       : '入力中… 日本語は変換を確定して続けてください。';
@@ -486,6 +488,7 @@ function updateTypingInput(): void {
 const typingInput = $('#typing-input') as HTMLInputElement;
 typingInput.addEventListener('compositionstart', () => {
   isImeComposing = true;
+  typingInput.closest<HTMLElement>('.input-wrap')?.classList.remove('has-error');
   const feedback = $('#typing-feedback');
   feedback.classList.remove('is-error');
   feedback.textContent = 'IME変換中…';
@@ -495,14 +498,27 @@ typingInput.addEventListener('compositionend', () => {
   requestAnimationFrame(updateTypingInput);
 });
 typingInput.addEventListener('input', (event) => {
-  if (isImeComposing || (event as InputEvent).isComposing) return;
+  const inputEvent = event as InputEvent;
+  if (isImeComposing || inputEvent.isComposing || inputEvent.inputType === 'insertCompositionText') return;
   updateTypingInput();
+});
+
+// Enter used to accept an IME candidate must never fire the in-game shot.
+typingInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && (event.isComposing || isImeComposing || event.keyCode === 229)) {
+    suppressImeEnterSubmit = true;
+    requestAnimationFrame(() => { suppressImeEnterSubmit = false; });
+  }
 });
 
 $('#typing-form').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!prompt || currentPhase !== 'typing' || !lastSnapshot?.active) return;
-  if (isImeComposing) return;
+  if (isImeComposing || suppressImeEnterSubmit) {
+    suppressImeEnterSubmit = false;
+    $('#typing-feedback').textContent = 'IME変換を確定してから、もう一度Enterを押してください。';
+    return;
+  }
   const value = ($('#typing-input') as HTMLInputElement).value;
   const metrics = calculateTyping(value);
   if (!metrics.correct) {
@@ -514,7 +530,7 @@ $('#typing-form').addEventListener('submit', (event) => {
   }
   $('#typing-feedback').classList.remove('is-error');
   ($('#typing-input') as HTMLInputElement).closest<HTMLElement>('.input-wrap')?.classList.remove('has-error');
-  const chars = normalizeTyping(value, Boolean(prompt.isCode)).length;
+  const chars = Array.from(normalizeTyping(value, Boolean(prompt.isCode))).length;
   bestAccuracy = Math.max(bestAccuracy, metrics.accuracy);
   $('#metric-wpm').textContent = String(Math.round(metrics.speed * 12));
   $('#metric-accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
