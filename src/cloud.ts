@@ -34,6 +34,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 });
 
 let activeUser: { id: string; email: string | null } | null = null;
+let clerkReady = false;
 let cloudReady = false;
 let restoringCloudData = false;
 let signInMounted = false;
@@ -101,6 +102,7 @@ async function loadClerkUiBundle(): Promise<void> {
 }
 
 function mountClerkControls(): void {
+  if (!clerkReady) return;
   if (activeUser && !userButtonMounted) {
     const root = getElement<HTMLDivElement>('#clerk-user-button');
     clerk.mountUserButton(root);
@@ -321,6 +323,7 @@ export async function initializeCloudAccount(): Promise<void> {
   try {
     await loadClerkUiBundle();
     await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor as never } });
+    clerkReady = true;
     clerk.addListener(({ user }) => {
       const nextUser = user?.id
         ? { id: user.id, email: (user as CloudUser).primaryEmailAddress?.emailAddress ?? null }
