@@ -1110,21 +1110,28 @@ window.addEventListener('key-bullet:online-raid-state', (event) => {
 
 window.addEventListener('key-bullet:online-result', (event) => {
   const detail = (event as CustomEvent<{ result: string; mode?: string }>).detail;
-  if (!detail || !['win', 'lose', 'raid-clear'].includes(detail.result)) return;
-  if (detail.result === 'raid-clear' && onlineMatchMode === 'raid' && lastSnapshot?.active) {
-    game.setOnlineBossHp(0, 1400);
-  } else if (detail.result !== 'raid-clear') {
+  if (!detail || !['win', 'lose', 'raid-clear', 'disconnect'].includes(detail.result)) return;
+  const resultMode = detail.mode === 'raid' || onlineMatchMode === 'raid' ? 'raid' : 'pvp';
+  if (detail.result === 'raid-clear' && resultMode === 'raid') {
+    if (lastSnapshot?.active) game.setOnlineBossHp(0, 1400);
+    else game.stop();
+  } else {
     game.stop();
   }
   const snapshot = game.getSnapshot();
-  $('#result-overline').textContent = detail.result === 'raid-clear' ? 'LINK RAID / RESULT' : 'PVP / RESULT';
-  $('#result-title').textContent = detail.result === 'raid-clear' ? 'RAID CLEAR' : detail.result === 'win' ? 'VICTORY' : 'DEFEAT';
+  $('#result-overline').textContent = detail.result === 'raid-clear' || resultMode === 'raid'
+    ? 'LINK RAID / RESULT' : 'PVP / RESULT';
+  $('#result-title').textContent = detail.result === 'raid-clear' ? 'RAID CLEAR'
+    : detail.result === 'win' ? 'VICTORY'
+      : detail.result === 'lose' ? 'DEFEAT' : 'CONNECTION LOST';
   $('#result-description').textContent = detail.result === 'raid-clear'
     ? 'チーム全員でボスを撃破しました。'
-    : detail.result === 'win' ? '対戦相手のライフがなくなりました。' : 'ライフがなくなりました。次の対戦で再挑戦しよう。';
+    : detail.result === 'win' ? '対戦相手のライフがなくなりました。'
+      : detail.result === 'lose' ? 'ライフがなくなりました。次の対戦で再挑戦しよう。'
+        : 'ルームまたは対戦相手との接続が切れました。オンラインロビーから再接続してください。';
   $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
   $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
-  $('#result-stage').textContent = detail.result === 'raid-clear' ? 'LINK RAID' : 'PVP';
+  $('#result-stage').textContent = resultMode === 'raid' ? 'LINK RAID' : 'PVP';
   $('#result-retry').setAttribute('hidden', 'true');
   $('#result-menu').textContent = 'BACK TO MENU';
   currentPhase = 'ended';

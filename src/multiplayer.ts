@@ -9,6 +9,9 @@ type Room = {
   status: 'waiting' | 'playing' | 'finished';
   host_user_id: string;
   max_players: number;
+  finish_reason: 'pvp-out' | 'raid-clear' | null;
+  result_user_id: string | null;
+  finished_at: string | null;
 };
 
 type RoomMember = {
@@ -154,6 +157,50 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   const lastRaidAttackAt = new Map<string, number>();
   let globalOnlineEnabled = true;
   let adminPanelEnabled = false;
+  let roomGeneration = 0;
+  let roomPollTimer: number | null = null;
+  let restoringRoom = false;
+  let resultHandled = false;
+  const roomRefreshes = new Set<string>();
+  const rosterRefreshes = new Set<string>();
+  let onlineUserIds = new Set<string>();
+
+  function isCurrentRoom(roomId: string, generation: number): boolean {
+    return Boolean(room && room.id === roomId && roomGeneration === generation);
+  }
+
+  function syncOnlinePresence(source: RealtimeChannel, roomId: string, generation: number): void {
+    if (!isCurrentRoom(roomId, generation) || channel !== source) return;
+    const presence = source.presenceState() as Record<string, Array<Record<string, unknown>>>;
+    const nextOnline = new Set<string>();
+    for (const [presenceKey, records] of Object.entries(presence)) {
+      for (const record of records ?? []) {
+        const userId = typeof record.user_id === 'string' ? record.user_id : presenceKey;
+        nextOnline.add(userId);
+      }
+    }
+    onlineUserIds = nextOnline;
+    renderRoom();
+  }
+
+  function startRoomPolling(roomId: string, generation: number): void {
+    if (roomPollTimer !== null) window.clearInterval(roomPollTimer);
+    roomPollTimer = window.setInterval(() => {
+      if (isCurrentRoom(roomId, generation)) void refreshRoom(roomId, generation);
+    }, 5000);
+  }
+
+  function finishFromDatabase(): void {
+    if (!room || !matchActive || resultHandled || room.status !== 'finished') return;
+    resultHandled = true;
+    matchActive = false;
+    let result: string = 'disconnect';
+    if (room.finish_reason === 'raid-clear') result = 'raid-clear';
+    else if (room.finish_reason === 'pvp-out' && room.result_user_id) {
+      result = room.result_user_id === identity?.id ? 'lose' : 'win';
+    }
+    emit('key-bullet:online-result', { result, mode: room.mode });
+  }
 
   function applyOnlineAvailability(): void {
     const blocked = !globalOnlineEnabled && !adminPanelEnabled;
@@ -201,29 +248,47 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     }
   }
 
-  async function send(event: string, payload: Record<string, unknown>): Promise<void> {
-    if (!channel) return;
+  async function send(event: string, payload: Record<string, unknown>): Promise<boolean> {
+    const activeChannel = channel;
+    const activeRoomId = room?.id;
+    const generation = roomGeneration;
+    if (!activeChannel || !activeRoomId) return false;
     try {
-      const result = await channel.send({ type: 'broadcast', event, payload });
+      const result = await activeChannel.send({ type: 'broadcast', event, payload });
+      if (!isCurrentRoom(activeRoomId, generation) || channel !== activeChannel) return false;
       if (result !== 'ok') throw new Error('Realtimeがメッセージを受け付けませんでした。');
+      return true;
     } catch (error) {
-      setStatus('通信できませんでした：' + errorMessage(error), true);
+      if (isCurrentRoom(activeRoomId, generation)) {
+        setStatus('通信できませんでした：' + errorMessage(error), true);
+      }
+      return false;
     }
   }
 
-  async function refreshRoster(): Promise<void> {
-    if (!room) return;
-    const { data, error } = await supabase
-      .from('game_room_members')
-      .select('user_id, display_name, is_ready')
-      .eq('room_id', room.id)
-      .order('joined_at', { ascending: true });
-    if (error) {
-      setStatus('参加者一覧を取得できません：' + errorMessage(error), true);
-      return;
+  async function refreshRoster(
+    expectedRoomId = room?.id,
+    expectedGeneration = roomGeneration,
+  ): Promise<void> {
+    if (!expectedRoomId || !isCurrentRoom(expectedRoomId, expectedGeneration)) return;
+    if (rosterRefreshes.has(expectedRoomId)) return;
+    rosterRefreshes.add(expectedRoomId);
+    try {
+      const { data, error } = await supabase
+        .from('game_room_members')
+        .select('user_id, display_name, is_ready')
+        .eq('room_id', expectedRoomId)
+        .order('joined_at', { ascending: true });
+      if (!isCurrentRoom(expectedRoomId, expectedGeneration)) return;
+      if (error) {
+        setStatus('参加者一覧を取得できません：' + errorMessage(error), true);
+        return;
+      }
+      members = (data ?? []) as RoomMember[];
+      renderRoom();
+    } finally {
+      rosterRefreshes.delete(expectedRoomId);
     }
-    members = (data ?? []) as RoomMember[];
-    renderRoom();
   }
 
   function renderRoom(): void {
@@ -240,7 +305,8 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
       const name = document.createElement('span');
       name.textContent = member.display_name + (member.user_id === room.host_user_id ? ' / HOST' : '');
       const state = document.createElement('small');
-      state.textContent = member.is_ready ? 'READY' : 'NOT READY';
+      const connection = onlineUserIds.has(member.user_id) ? 'ONLINE' : 'OFFLINE';
+      state.textContent = `${member.is_ready ? 'READY' : 'NOT READY'} · ${connection}`;
       item.append(name, state);
       roster.append(item);
     }
@@ -251,29 +317,51 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     $('#kb-online-ready').hidden = room.status !== 'waiting';
     const startButton = $('#kb-online-start') as HTMLButtonElement;
     startButton.hidden = !isHost || room.status !== 'waiting';
-    startButton.disabled = members.length < 2 || members.some((member) => !member.is_ready);
+    const allReadyAndConnected = members.length >= 2
+      && members.every((member) => member.is_ready && onlineUserIds.has(member.user_id));
+    startButton.disabled = !allReadyAndConnected;
+    startButton.title = allReadyAndConnected
+      ? ''
+      : '全員がオンラインで準備完了になると開始できます。';
     if (room.status === 'playing' && !matchActive) enterGame();
   }
 
-  async function refreshRoom(): Promise<void> {
-    if (!room) return;
-    const { data, error } = await supabase
-      .from('game_rooms')
-      .select('id, code, mode, status, host_user_id, max_players')
-      .eq('id', room.id)
-      .maybeSingle();
-    if (error || !data) {
-      setStatus('ルームが閉じられました。', true);
-      await resetRoom(false);
-      return;
+  async function refreshRoom(
+    expectedRoomId = room?.id,
+    expectedGeneration = roomGeneration,
+  ): Promise<void> {
+    if (!expectedRoomId || !isCurrentRoom(expectedRoomId, expectedGeneration)) return;
+    if (roomRefreshes.has(expectedRoomId)) return;
+    roomRefreshes.add(expectedRoomId);
+    try {
+      const { data, error } = await supabase
+        .from('game_rooms')
+        .select('id, code, mode, status, host_user_id, max_players, finish_reason, result_user_id, finished_at')
+        .eq('id', expectedRoomId)
+        .maybeSingle();
+      if (!isCurrentRoom(expectedRoomId, expectedGeneration)) return;
+      if (error) {
+        // A temporary request failure must not discard a valid local room.
+        setStatus('ルーム状態を再確認しています：' + errorMessage(error), true);
+        return;
+      }
+      if (!data) {
+        setStatus('ルームが終了または削除されました。', true);
+        await resetRoom(false, true);
+        return;
+      }
+      room = data as Room;
+      await refreshRoster(expectedRoomId, expectedGeneration);
+      if (isCurrentRoom(expectedRoomId, expectedGeneration)) finishFromDatabase();
+    } finally {
+      roomRefreshes.delete(expectedRoomId);
     }
-    room = data as Room;
-    await refreshRoster();
   }
 
   function dispatchGameStart(): void {
-    if (!room || matchActive) return;
+    if (!room || room.status !== 'playing' || matchActive) return;
     matchActive = true;
+    resultHandled = false;
     backdrop.hidden = true;
     updateHud(room.mode === 'pvp' ? 'PVP / LIVE' : 'LINK RAID / LIVE',
       room.mode === 'pvp' ? '相手の攻撃を3回受けると敗北' : '共有ボスHPを全員で削ろう',
@@ -293,137 +381,243 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     dispatchGameStart();
   }
 
-  async function subscribeToRoom(): Promise<void> {
-    if (!room || !identity) return;
-    if (channel) await supabase.removeChannel(channel);
-    const topic = ROOM_TOPIC_PREFIX + room.id;
-    const nextChannel = supabase.channel(topic, {
+  async function subscribeToRoom(roomId: string, generation: number): Promise<void> {
+    if (!identity || !isCurrentRoom(roomId, generation)) return;
+
+    const previousChannel = channel;
+    channel = null;
+    if (previousChannel) await supabase.removeChannel(previousChannel);
+    if (!isCurrentRoom(roomId, generation) || !identity) return;
+
+    // Force the configured Clerk accessToken callback to populate Realtime auth
+    // before joining a private room topic.
+    await supabase.realtime.setAuth();
+    if (!isCurrentRoom(roomId, generation) || !identity) return;
+
+    const userId = identity.id;
+    const nextChannel = supabase.channel(ROOM_TOPIC_PREFIX + roomId, {
       config: {
         private: true,
         broadcast: { ack: true, self: false },
-        presence: { key: identity.id },
+        presence: { key: userId },
       },
     });
+    const isActive = () => isCurrentRoom(roomId, generation) && channel === nextChannel;
+
     nextChannel
-      .on('presence', { event: 'sync' }, () => { void refreshRoster(); })
-      .on('broadcast', { event: 'room-refresh' }, () => { void refreshRoster(); })
+      .on('presence', { event: 'sync' }, () => {
+        if (!isActive()) return;
+        syncOnlinePresence(nextChannel, roomId, generation);
+        void refreshRoom(roomId, generation);
+      })
+      .on('broadcast', { event: 'room-refresh' }, () => {
+        if (isActive()) void refreshRoom(roomId, generation);
+      })
       .on('broadcast', { event: 'room-closed' }, ({ payload }) => {
-        if (!room || payload?.closed_by !== room.host_user_id) return;
-        window.setTimeout(() => { void refreshRoom(); }, 350);
+        if (!isActive() || payload?.closed_by !== room?.host_user_id) return;
+        void refreshRoom(roomId, generation);
       })
       .on('broadcast', { event: 'game-start' }, () => {
-        // The database start state is authoritative; an arbitrary broadcast
-        // must not bypass the host / readiness checks in the RPC.
-        void refreshRoom();
+        // The database start state is authoritative.
+        if (isActive()) void refreshRoom(roomId, generation);
       })
       .on('broadcast', { event: 'pvp-attack' }, ({ payload }) => {
+        if (!isActive() || !room || room.mode !== 'pvp' || room.status !== 'playing' || !matchActive) return;
         const attackerId = typeof payload?.user_id === 'string' ? payload.user_id : '';
-        if (!identity || attackerId === identity.id || !members.some((member) => member.user_id === attackerId)) return;
+        if (!attackerId || attackerId === userId || !members.some((member) => member.user_id === attackerId)) return;
         const now = Date.now();
         if (now - (lastIncomingPvpAttackAt.get(attackerId) ?? 0) < 300) return;
         lastIncomingPvpAttackAt.set(attackerId, now);
         emit('key-bullet:online-pvp-hit', { attackerId });
       })
       .on('broadcast', { event: 'player-out' }, ({ payload }) => {
+        if (!isActive() || !room || room.mode !== 'pvp' || room.status !== 'playing' || !matchActive || resultHandled) return;
         const loserId = typeof payload?.user_id === 'string' ? payload.user_id : '';
-        if (!identity || !members.some((member) => member.user_id === loserId)) return;
-        emit('key-bullet:online-result', { result: loserId === identity.id ? 'lose' : 'win', mode: room?.mode });
+        if (!loserId || !members.some((member) => member.user_id === loserId)) return;
+        resultHandled = true;
+        matchActive = false;
+        emit('key-bullet:online-result', {
+          result: loserId === userId ? 'lose' : 'win',
+          mode: 'pvp',
+        });
       })
       .on('broadcast', { event: 'raid-attack' }, ({ payload }) => {
-        if (!room || room.mode !== 'raid' || room.host_user_id !== identity?.id) return;
+        if (!isActive() || !room || room.mode !== 'raid' || room.status !== 'playing'
+          || !matchActive || room.host_user_id !== userId) return;
         const attackerId = typeof payload?.user_id === 'string' ? payload.user_id : '';
-        if (!members.some((member) => member.user_id === attackerId)) return;
-        processRaidAttack(payload);
+        if (!attackerId || !members.some((member) => member.user_id === attackerId)) return;
+        void processRaidAttack(payload);
       })
       .on('broadcast', { event: 'raid-state' }, ({ payload }) => {
+        if (!isActive() || !room || room.mode !== 'raid' || room.status !== 'playing' || !matchActive
+          || payload?.host_user_id !== room.host_user_id) return;
         const hp = Number(payload?.hp);
-        if (
-          !Number.isFinite(hp) ||
-          !room ||
-          room.mode !== 'raid' ||
-          payload?.host_user_id !== room.host_user_id
-        ) return;
+        if (!Number.isFinite(hp)) return;
         raidHp = Math.max(0, Math.min(RAID_HP_MAX, hp));
         updateHud('LINK RAID / LIVE', `BOSS HP ${Math.ceil(raidHp)} / ${RAID_HP_MAX}`, raidHp / RAID_HP_MAX);
         emit('key-bullet:online-raid-state', { hp: raidHp, maxHp: RAID_HP_MAX });
       })
       .on('broadcast', { event: 'raid-clear' }, ({ payload }) => {
-        if (!room || room.mode !== 'raid' || payload?.host_user_id !== room.host_user_id) return;
+        if (!isActive() || !room || room.mode !== 'raid' || room.status !== 'playing'
+          || payload?.host_user_id !== room.host_user_id || resultHandled) return;
+        resultHandled = true;
+        matchActive = false;
         emit('key-bullet:online-result', { result: 'raid-clear', mode: 'raid' });
       });
 
     channel = nextChannel;
     await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error('ルームへの接続がタイムアウトしました。')), 12000);
+      let initiallyConnected = false;
+      const timeout = window.setTimeout(() => {
+        if (!initiallyConnected) {
+          initiallyConnected = true;
+          reject(new Error('ルームへの接続がタイムアウトしました。'));
+        }
+      }, 12000);
+
       nextChannel.subscribe((status, error) => {
+        if (!isActive()) return;
         if (status === 'SUBSCRIBED') {
+          const firstConnection = !initiallyConnected;
+          initiallyConnected = true;
           window.clearTimeout(timeout);
-          resolve();
+          void nextChannel.track({
+            user_id: userId,
+            display_name: displayName(),
+            is_ready: ready,
+            connected_at: new Date().toISOString(),
+          }).then((trackStatus) => {
+            if (!isActive()) return;
+            if (trackStatus !== 'ok') {
+              setStatus('ルームへの参加状態を同期できませんでした。再接続を試してください。', true);
+              return;
+            }
+            syncOnlinePresence(nextChannel, roomId, generation);
+            void refreshRoster(roomId, generation);
+          }).catch((trackError: unknown) => {
+            if (isActive()) setStatus('参加状態の同期に失敗しました：' + errorMessage(trackError), true);
+          });
+          if (firstConnection) resolve();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          window.clearTimeout(timeout);
-          reject(error ?? new Error('Realtimeチャンネルに接続できませんでした。'));
+          const detail = error ? errorMessage(error) : 'Realtimeチャンネルに接続できませんでした。';
+          setStatus('ルーム接続エラー：' + detail, true);
+          if (!initiallyConnected) {
+            initiallyConnected = true;
+            window.clearTimeout(timeout);
+            reject(new Error(detail));
+          }
         }
       });
-    });
-    await nextChannel.track({
-      user_id: identity.id,
-      display_name: displayName(),
-      connected_at: new Date().toISOString(),
     });
   }
 
   async function openRoom(roomId: string, code?: string): Promise<void> {
     const { data, error } = await supabase
       .from('game_rooms')
-      .select('id, code, mode, status, host_user_id, max_players')
+      .select('id, code, mode, status, host_user_id, max_players, finish_reason, result_user_id, finished_at')
       .eq('id', roomId)
       .single();
     if (error || !data) throw error ?? new Error('ルームが見つかりません。');
+
+    const generation = ++roomGeneration;
     room = data as Room;
     if (code) room.code = code;
     matchActive = false;
+    resultHandled = false;
     ready = false;
     raidHp = RAID_HP_MAX;
+    onlineUserIds = new Set<string>();
     $('#kb-online-menu').hidden = true;
     $('#kb-online-room').hidden = false;
-    await subscribeToRoom();
-    await refreshRoom();
-    setStatus('ルームに接続しました。参加者が揃ったら準備完了を押してください。');
+
+    try {
+      await subscribeToRoom(roomId, generation);
+      if (!isCurrentRoom(roomId, generation)) return;
+      await refreshRoom(roomId, generation);
+      if (!isCurrentRoom(roomId, generation)) return;
+      startRoomPolling(roomId, generation);
+      if (room?.status === 'playing') {
+        setStatus('試合に再接続しました。');
+      } else if (room?.status === 'waiting') {
+        setStatus('ルームに接続しました。参加者全員がオンラインで準備完了になると開始できます。');
+      }
+    } catch (connectionError) {
+      if (isCurrentRoom(roomId, generation)) {
+        await resetRoom(true, false);
+      }
+      throw new Error('ルーム接続に失敗したため、参加状態を解除しました：' + errorMessage(connectionError));
+    }
   }
 
-  async function resetRoom(removeMembership: boolean): Promise<void> {
+  async function resetRoom(removeMembership: boolean, notifyMatch = false): Promise<void> {
     const previousRoom = room;
     const previousChannel = channel;
+    const hadActiveMatch = matchActive;
+    const previousMode = previousRoom?.mode;
+    roomGeneration += 1;
+    if (roomPollTimer !== null) {
+      window.clearInterval(roomPollTimer);
+      roomPollTimer = null;
+    }
     channel = null;
+    room = null;
+    members = [];
+    onlineUserIds = new Set<string>();
+    ready = false;
+    matchActive = false;
+    resultHandled = false;
+    raidHp = RAID_HP_MAX;
+    $('#kb-online-room').hidden = true;
+    $('#kb-online-menu').hidden = false;
+    hud.hidden = true;
+
     if (previousChannel) await supabase.removeChannel(previousChannel);
     if (removeMembership && previousRoom) {
       const { error } = await supabase.rpc('leave_game_room', { p_room_id: previousRoom.id });
       if (error) setStatus('退出処理に失敗しました：' + errorMessage(error), true);
     }
-    room = null;
-    members = [];
-    ready = false;
-    matchActive = false;
-    raidHp = RAID_HP_MAX;
-    $('#kb-online-room').hidden = true;
-    $('#kb-online-menu').hidden = false;
-    hud.hidden = true;
+    if (notifyMatch && hadActiveMatch) {
+      emit('key-bullet:online-result', { result: 'disconnect', mode: previousMode });
+    }
   }
 
   async function processRaidAttack(payload: Record<string, unknown>): Promise<void> {
-    if (!room || !identity || room.host_user_id !== identity.id) return;
-    const attackerId = String(payload.user_id ?? identity.id);
+    if (!room || !identity || room.mode !== 'raid' || room.status !== 'playing'
+      || !matchActive || room.host_user_id !== identity.id) return;
+    const attackerId = typeof payload.user_id === 'string' ? payload.user_id : '';
+    if (!attackerId || !members.some((member) => member.user_id === attackerId)) return;
     const now = Date.now();
     if (now - (lastRaidAttackAt.get(attackerId) ?? 0) < 300) return;
     lastRaidAttackAt.set(attackerId, now);
-    const power = Math.max(0.65, Math.min(3.4, Number(payload.power) || 0.65));
-    const chars = Math.max(1, Math.min(80, Math.floor(Number(payload.chars) || 1)));
+    const powerValue = Number(payload.power);
+    const charsValue = Math.floor(Number(payload.chars));
+    const power = Math.max(0.65, Math.min(3.4, Number.isFinite(powerValue) ? powerValue : 0.65));
+    const chars = Math.max(1, Math.min(80, Number.isFinite(charsValue) ? charsValue : 1));
     const damage = Math.round(8 + power * 18 + chars * 0.3);
     raidHp = Math.max(0, raidHp - damage);
+    const isClear = raidHp <= 0 && !resultHandled;
+
+    if (isClear) {
+      resultHandled = true;
+      const { error } = await supabase.rpc('finish_game_room', {
+        p_room_id: room.id,
+        p_reason: 'raid-clear',
+        p_result_user_id: attackerId,
+      });
+      if (error) setStatus('レイド結果を保存できません：' + errorMessage(error), true);
+      if (room) {
+        room.status = 'finished';
+        room.finish_reason = 'raid-clear';
+        room.result_user_id = attackerId;
+        room.finished_at = new Date().toISOString();
+      }
+    }
+
     updateHud('LINK RAID / LIVE', `BOSS HP ${Math.ceil(raidHp)} / ${RAID_HP_MAX}`, raidHp / RAID_HP_MAX);
     emit('key-bullet:online-raid-state', { hp: raidHp, maxHp: RAID_HP_MAX });
     await send('raid-state', { hp: raidHp, damage, host_user_id: identity.id });
-    if (raidHp <= 0) {
+    if (isClear) {
+      matchActive = false;
       await send('raid-clear', { host_user_id: identity.id, cleared_by: attackerId });
       emit('key-bullet:online-result', { result: 'raid-clear', mode: 'raid' });
     }
@@ -438,7 +632,11 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
       setStatus('オンライン対戦にはClerkログインが必要です。', true);
       return;
     }
-    if (room) await resetRoom(true);
+    if (restoringRoom) {
+      setStatus('前回のルーム情報を確認しています。少し待ってから再試行してください。', true);
+      return;
+    }
+    if (room) await resetRoom(true, false);
     const button = $('#kb-online-create') as HTMLButtonElement;
     button.disabled = true;
     try {
@@ -467,6 +665,11 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
       setStatus('オンライン対戦にはClerkログインが必要です。', true);
       return;
     }
+    if (restoringRoom) {
+      setStatus('前回のルーム情報を確認しています。少し待ってから再試行してください。', true);
+      return;
+    }
+    if (room) await resetRoom(true, false);
     const input = $('#kb-online-code-input') as HTMLInputElement;
     const code = input.value.trim().toUpperCase();
     if (!/^[A-F0-9]{6}$/.test(code)) {
@@ -493,36 +696,61 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   }
 
   async function toggleReady(): Promise<void> {
-    if (!room || !identity) return;
+    if (!room || !identity || room.status !== 'waiting') return;
+    const roomId = room.id;
+    const generation = roomGeneration;
+    const button = $('#kb-online-ready') as HTMLButtonElement;
+    button.disabled = true;
     const next = !ready;
-    const { error } = await supabase.rpc('set_game_room_ready', {
-      p_room_id: room.id,
-      p_ready: next,
-    });
-    if (error) {
-      setStatus('準備状態を更新できません：' + errorMessage(error), true);
-      return;
+    try {
+      const { error } = await supabase.rpc('set_game_room_ready', {
+        p_room_id: roomId,
+        p_ready: next,
+      });
+      if (error) throw error;
+      if (!isCurrentRoom(roomId, generation)) return;
+      ready = next;
+      const trackResult = await channel?.track({
+        user_id: identity.id,
+        display_name: displayName(),
+        is_ready: ready,
+      });
+      if (trackResult && trackResult !== 'ok') {
+        setStatus('準備状態の同期が遅れています。再確認します。', true);
+      }
+      await send('room-refresh', { changed_by: identity.id });
+      await refreshRoster(roomId, generation);
+    } catch (error) {
+      if (isCurrentRoom(roomId, generation)) setStatus('準備状態を更新できません：' + errorMessage(error), true);
+    } finally {
+      if (isCurrentRoom(roomId, generation)) button.disabled = false;
     }
-    ready = next;
-    await channel?.track({ user_id: identity.id, display_name: displayName(), ready });
-    await send('room-refresh', { changed_by: identity.id });
-    await refreshRoster();
   }
 
   async function startGame(): Promise<void> {
-    if (!room || !identity || room.host_user_id !== identity.id) return;
+    if (!room || !identity || room.host_user_id !== identity.id || room.status !== 'waiting') return;
+    const roomId = room.id;
+    const generation = roomGeneration;
     const button = $('#kb-online-start') as HTMLButtonElement;
     button.disabled = true;
-    const { error } = await supabase.rpc('start_game_room', { p_room_id: room.id });
-    if (error) {
+    try {
+      const { error } = await supabase.rpc('start_game_room', { p_room_id: roomId });
+      if (error) throw error;
+      if (!isCurrentRoom(roomId, generation) || !room) return;
+      room.status = 'playing';
+      room.finish_reason = null;
+      room.result_user_id = null;
+      room.finished_at = null;
+      await send('game-start', { started_by: identity.id });
+      await refreshRoom(roomId, generation);
+      if (isCurrentRoom(roomId, generation) && room?.status === 'playing') dispatchGameStart();
+    } catch (error) {
+      if (!isCurrentRoom(roomId, generation)) return;
       setStatus('開始できません：' + errorMessage(error), true);
-      button.disabled = false;
-      await refreshRoom();
-      return;
+      await refreshRoom(roomId, generation);
+    } finally {
+      if (isCurrentRoom(roomId, generation)) button.disabled = false;
     }
-    room.status = 'playing';
-    await send('game-start', { started_by: identity.id });
-    dispatchGameStart();
   }
 
   applyOnlineAvailability();
@@ -558,8 +786,14 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   ($('#kb-online-ready') as HTMLButtonElement).addEventListener('click', () => { void toggleReady(); });
   ($('#kb-online-start') as HTMLButtonElement).addEventListener('click', () => { void startGame(); });
   ($('#kb-online-leave') as HTMLButtonElement).addEventListener('click', async () => {
-    if (room && identity?.id === room.host_user_id) await send('room-closed', { closed_by: identity.id });
-    await resetRoom(true);
+    const leavingRoom = room;
+    if (!leavingRoom || !identity) return;
+    if (identity.id === leavingRoom.host_user_id) {
+      await send('room-closed', { closed_by: identity.id });
+    } else {
+      await send('room-refresh', { changed_by: identity.id, leaving: true });
+    }
+    await resetRoom(true, false);
     setStatus('ルームから退出しました。');
   });
   ($('#kb-online-close') as HTMLButtonElement).addEventListener('click', () => { backdrop.hidden = true; });
@@ -569,7 +803,7 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
 
   window.addEventListener('key-bullet:online-local-attack', (event) => {
     const detail = (event as CustomEvent<{ power: number; chars: number; accuracy: number }>).detail;
-    if (!room || !channel || !identity || !matchActive || !detail) return;
+    if (!room || room.status !== 'playing' || !channel || !identity || !matchActive || !detail) return;
     const now = Date.now();
     if (now - lastAttackAt < 350) return;
     lastAttackAt = now;
@@ -590,22 +824,52 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
 
   window.addEventListener('key-bullet:online-match-exit', () => {
     void (async () => {
-      if (room && identity?.id === room.host_user_id) await send('room-closed', { closed_by: identity.id });
-      await resetRoom(true);
+      if (!room || !identity) return;
+      if (identity.id === room.host_user_id) await send('room-closed', { closed_by: identity.id });
+      else await send('room-refresh', { changed_by: identity.id, leaving: true });
+      await resetRoom(true, false);
     })();
   });
 
   window.addEventListener('key-bullet:online-player-out', () => {
-    if (!room || !identity || !channel || !matchActive || room.mode !== 'pvp') return;
-    void send('player-out', { user_id: identity.id });
-    emit('key-bullet:online-result', { result: 'lose', mode: 'pvp' });
+    if (!room || !identity || !channel || !matchActive || room.status !== 'playing'
+      || room.mode !== 'pvp' || resultHandled) return;
+    const roomId = room.id;
+    const generation = roomGeneration;
+    const loserId = identity.id;
+    resultHandled = true;
+    void (async () => {
+      const { error } = await supabase.rpc('finish_game_room', {
+        p_room_id: roomId,
+        p_reason: 'pvp-out',
+        p_result_user_id: loserId,
+      });
+      if (error && isCurrentRoom(roomId, generation)) {
+        setStatus('敗北結果を保存できません：' + errorMessage(error), true);
+      }
+      if (!isCurrentRoom(roomId, generation)) return;
+      if (room) {
+        room.status = 'finished';
+        room.finish_reason = 'pvp-out';
+        room.result_user_id = loserId;
+        room.finished_at = new Date().toISOString();
+      }
+      matchActive = false;
+      await send('player-out', { user_id: loserId });
+      emit('key-bullet:online-result', { result: 'lose', mode: 'pvp' });
+    })();
   });
 
   window.addEventListener('key-bullet:online-result', (event) => {
     const detail = (event as CustomEvent<{ result: string }>).detail;
-    if (detail?.result === 'raid-clear' || detail?.result === 'win' || detail?.result === 'lose') {
+    if (detail?.result === 'raid-clear' || detail?.result === 'win'
+      || detail?.result === 'lose' || detail?.result === 'disconnect') {
       matchActive = false;
-      updateHud('MATCH COMPLETE', detail.result === 'raid-clear' ? 'レイドボス撃破！' : detail.result === 'win' ? 'WIN / VICTORY' : 'LOSE / TRY AGAIN');
+      resultHandled = true;
+      const text = detail.result === 'raid-clear' ? 'レイドボス撃破！'
+        : detail.result === 'win' ? 'WIN / VICTORY'
+          : detail.result === 'lose' ? 'LOSE / TRY AGAIN' : '接続が切断されました';
+      updateHud(detail.result === 'disconnect' ? 'CONNECTION LOST' : 'MATCH COMPLETE', text);
     }
   });
 
@@ -613,15 +877,61 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     if (event.key === 'Enter') void joinRoom();
   });
 
+  async function restoreWaitingRoom(userId: string): Promise<void> {
+    if (restoringRoom || room || identity?.id !== userId) return;
+    restoringRoom = true;
+    try {
+      const { data: memberships, error } = await supabase
+        .from('game_room_members')
+        .select('room_id')
+        .eq('user_id', userId)
+        .order('joined_at', { ascending: false })
+        .limit(5);
+      if (error) throw error;
+
+      for (const membership of memberships ?? []) {
+        if (identity?.id !== userId || room) return;
+        const { data: candidate, error: roomError } = await supabase
+          .from('game_rooms')
+          .select('id, code, mode, status, host_user_id, max_players, finish_reason, result_user_id, finished_at')
+          .eq('id', membership.room_id)
+          .eq('status', 'waiting')
+          .maybeSingle();
+        if (roomError) continue;
+        if (!candidate) continue;
+        await openRoom(candidate.id);
+        if (room?.id === candidate.id) {
+          setStatus('前回の待機ルームを復元しました。コードを共有して続けられます。');
+        }
+        return;
+      }
+    } catch (error) {
+      if (identity?.id === userId) {
+        setStatus('前回のルームを復元できませんでした：' + errorMessage(error), true);
+      }
+    } finally {
+      restoringRoom = false;
+    }
+  }
+
   return {
     setIdentity(nextIdentity): void {
       const previousId = identity?.id ?? null;
-      identity = nextIdentity;
-      trigger.disabled = false;
-      trigger.title = identity ? 'オンラインロビー' : 'ACCOUNTからログインするとオンライン対戦できます';
-      if (previousId && nextIdentity?.id !== previousId && room) {
-        void resetRoom(false);
+      const nextId = nextIdentity?.id ?? null;
+      if (previousId && nextId !== previousId && room) {
+        void resetRoom(false, true).finally(() => {
+          identity = nextIdentity;
+          applyOnlineAvailability();
+          trigger.title = identity ? 'オンラインロビー' : 'ACCOUNTからログインするとオンライン対戦できます';
+          if (identity) void restoreWaitingRoom(identity.id);
+        });
+        return;
       }
+
+      identity = nextIdentity;
+      applyOnlineAvailability();
+      trigger.title = identity ? 'オンラインロビー' : 'ACCOUNTからログインするとオンライン対戦できます';
+      if (identity && previousId !== identity.id) void restoreWaitingRoom(identity.id);
     },
   };
 }
