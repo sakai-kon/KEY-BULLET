@@ -2,6 +2,12 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.2.3] - 2026-11-22
+
+- Added 100 newly written anime-style prompts inspired by familiar story archetypes and genres.
+- Kept series titles and character names out of the prompt text and metadata; no copied anime dialogue was added.
+- Increased the total prompt library to 617 unique entries.
+
 ## [0.2.2] - 2026-11-22
 
 - Expanded the prompt library to 517 total prompts (including 500 additional Japanese prompts).
