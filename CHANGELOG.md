@@ -2,6 +2,14 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.4.0] - 2026-11-22
+
+- Added private room-code lobbies for signed-in players using Supabase Realtime Broadcast and Presence.
+- Added 1v1 PVP attacks and 2–4 player Link Raid with host-broadcast shared boss health.
+- Added room creation, join, ready checks, start validation, and leave/host-close behavior.
+- Added database RLS, private Realtime channel authorization, and authenticated room-management RPCs.
+- Preserved STORY, ENDLESS, guest play, existing account/cloud-save features, and the admin console.
+
 ## [0.3.1] - 2026-11-22
 
 - Added an administrator-only control panel for creating, editing, publishing, unpublishing, and deleting global announcements and maintenance notices.
