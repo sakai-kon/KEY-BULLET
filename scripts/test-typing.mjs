@@ -33,15 +33,15 @@ assert.equal(hasPotentialPrefix('const doubled = values.map', [code], true), tru
 
 process.stdout.write('Typing logic tests passed.\n');
 
-assert.equal(PROMPT_COUNT, 517, 'total prompt count should be 517');
+assert.equal(PROMPT_COUNT, 617, 'total prompt count should be 617');
 assert.deepEqual(PROMPT_STATS, {
-  total: 517,
-  uniqueTexts: 517,
-  byGenre: { code: 5, anime: 105, short: 304, long: 103 },
+  total: 617,
+  uniqueTexts: 617,
+  byGenre: { code: 5, anime: 205, short: 304, long: 103 },
 }, 'all prompts should be unique and distributed across categories');
 for (const genre of ['code', 'anime', 'short', 'long', 'random']) {
   const prompt = getPrompt(genre);
   assert.ok(prompt, `a prompt should exist for ${genre}`);
 }
 
-process.stdout.write('Typing logic tests passed; 517 unique prompts verified.\\n');
+process.stdout.write('Typing logic tests passed; 617 unique prompts verified.\\n');
