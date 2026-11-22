@@ -574,14 +574,27 @@ export class GameEngine {
     ctx.font = '600 11px ui-monospace, monospace';
     ctx.fillStyle = 'rgba(197,238,245,.78)';
     ctx.fillText(this.onlineMode === 'raid' ? 'ONLINE RAID / SHARED BOSS' : this.onlineMode === 'pvp' ? 'ONLINE PVP / DUEL' : this.mode === 'STORY' ? `STORY / STAGE 0${this.stage}` : `ENDLESS / WAVE ${String(this.wave).padStart(2, '0')}`, 30, 36);
-    ctx.fillStyle = '#A3CBCD'; ctx.fillText(`SEGMENT ${this.segment} / ${this.segments}`, 30, 54);
+    ctx.fillStyle = '#A3CBCD';
+    ctx.fillText(
+      this.onlineMode === 'raid'
+        ? `SHARED BOSS HP ${Math.ceil(this.hp)}`
+        : this.onlineMode === 'pvp'
+          ? `LIVES ${this.lives} / 3`
+          : `SEGMENT ${this.segment} / ${this.segments}`,
+      30,
+      54,
+    );
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(197,238,245,.7)';
     ctx.fillText(this.phase === 'typing' ? 'PHASE 01  /  TYPE' : `PHASE 02  /  DODGE  ${Math.ceil(Math.max(0, 20 - this.phaseElapsed))}s`, WIDTH - 30, 36);
     ctx.fillText(`GRAZE ${String(this.grazes).padStart(4, '0')}`, WIDTH - 30, 54);
     const x = 260; const y = 25; const w = 440; const h = 5;
     ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(x, y, w, h);
     ctx.fillStyle = '#83BBC0';
-    const overallSegmentProgress = ((this.segment - 1) + Math.max(0, this.hp / this.hpMax)) / this.segments;
+    const overallSegmentProgress = this.onlineMode === 'raid'
+      ? this.hp / this.hpMax
+      : this.onlineMode === 'pvp'
+        ? this.lives / 3
+        : ((this.segment - 1) + Math.max(0, this.hp / this.hpMax)) / this.segments;
     ctx.fillRect(x, y, w * Math.max(0, Math.min(1, overallSegmentProgress)), h);
     for (let i = 1; i < this.segments; i++) {
       ctx.fillStyle = '#080C14'; ctx.fillRect(x + (w / this.segments) * i - 1, y - 2, 2, h + 4);
