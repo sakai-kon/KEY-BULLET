@@ -473,7 +473,112 @@ async function copyText(value: string): Promise<void> {
 
 function setTransferMode(mode: 'export' | 'import'): void {
   transferMode = mode;
-  document.querySelectorAll<HTMLButtonElement>('.transfer-tab').forEach((button) => {
+  document.querySelectorAll<HTMLButtonElement>('.transfer-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === mode));
+  $('#transfer-export-fields').toggleAttribute('hidden', mode !== 'export');
+  $('#transfer-import-fields').toggleAttribute('hidden', mode !== 'import');
+  $('#transfer-action').textContent = mode === 'export' ? 'GENERATE CODE ↗' : 'RESTORE RECORD ↗';
+  ($('#transfer-text') as HTMLTextAreaElement).value = '';
+  $('#transfer-message').textContent = mode === 'export'
+    ? (loadUserProfile() ? 'パスコードを入力して暗号化コードを作成してください。' : '先にPROFILEからユーザー名とパスコードを設定してください。')
+    : '引き継ぎコードと、ユーザー名またはパスコードのどちらか一つを入力してください。';
+}
+
+function openTransfer(): void {
+  $('#transfer-modal').removeAttribute('hidden');
+  setTransferMode('export');
+}
+
+function renderProfile(): void {
+  const profile = loadUserProfile();
+  $('#profile-label').textContent = profile ? profile.username.slice(0, 9) : 'PROFILE';
+  $('#profile-username').setAttribute('placeholder', profile ? profile.username : 'プレイヤー名');
+}
+
+function openProfile(): void {
+  const profile = loadUserProfile();
+  ($('#profile-username') as HTMLInputElement).value = profile?.username ?? '';
+  ($('#profile-passcode') as HTMLInputElement).value = '';
+  ($('#profile-confirm') as HTMLInputElement).value = '';
+  $('#profile-message').textContent = profile
+    ? '新しいユーザー名とパスコードを入力して更新できます。'
+    : 'ユーザー名とパスコードを設定してください。';
+  $('#profile-modal').removeAttribute('hidden');
+}
+
+$('#profile-open').addEventListener('click', openProfile);
+$('#profile-close').addEventListener('click', () => $('#profile-modal').setAttribute('hidden', 'true'));
+$('#profile-save').addEventListener('click', async () => {
+  const username = ($('#profile-username') as HTMLInputElement).value.trim();
+  const passcode = ($('#profile-passcode') as HTMLInputElement).value;
+  const confirm = ($('#profile-confirm') as HTMLInputElement).value;
+  if (passcode !== confirm) {
+    $('#profile-message').textContent = '確認用パスコードが一致しません。';
+    return;
+  }
+  try {
+    await saveUserProfile(username, passcode);
+    renderProfile();
+    $('#profile-message').textContent = 'プロフィールを保存しました。パスコードそのものは端末に保存していません。';
+    ($('#profile-passcode') as HTMLInputElement).value = '';
+    ($('#profile-confirm') as HTMLInputElement).value = '';
+  } catch (error) {
+    $('#profile-message').textContent = error instanceof Error ? error.message : 'プロフィールを保存できませんでした。';
+  }
+});
+
+$('#home-play').addEventListener('click', () => showScreen('menu'));
+$('#home-record-open').addEventListener('click', openRecordModal);
+$('#menu-home').addEventListener('click', () => showScreen('home'));
+$('#game-menu').addEventListener('click', () => {
+  game.stop();
+  currentPhase = 'ended';
+  updateTypingPanelState();
+  $('#system-status').textContent = 'SYSTEM STANDBY';
+  showScreen('home');
+});
+$('#story-start').addEventListener('click', () => beginRun('STORY'));
+$('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
+$('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
+$('#result-retry').addEventListener('click', () => beginRun(currentMode));
+$('#result-menu').addEventListener('click', () => {
+  game.stop();
+  $('#system-status').textContent = 'SYSTEM STANDBY';
+  currentPhase = 'ended';
+  updateTypingPanelState();
+  showScreen('home');
+});
+
+document.querySelectorAll<HTMLButtonElement>('.genre-chip').forEach((button) => {
+  button.addEventListener('click', () => {
+    selectedGenre = button.dataset.genre as Genre;
+    document.querySelectorAll('.genre-chip').forEach((chip) => chip.classList.remove('selected'));
+    button.classList.add('selected');
+    $('#genre-state').textContent = getGenreLabel(selectedGenre);
+    if (currentPhase === 'typing' && lastSnapshot?.active) setupNewPrompt();
+  });
+});
+
+$('#sound-toggle').addEventListener('click', () => {
+  audio.setMuted(!audio.isMuted);
+  $('#sound-icon').textContent = audio.isMuted ? '×' : '♪';
+  $('#sound-toggle').classList.toggle('muted', audio.isMuted);
+});
+$('#stats-open').addEventListener('click', openRecordModal);
+$('#archive-close').addEventListener('click', () => $('#record-modal').setAttribute('hidden', 'true'));
+$('#transfer-open').addEventListener('click', openTransfer);
+$('#transfer-close').addEventListener('click', () => $('#transfer-modal').setAttribute('hidden', 'true'));
+$('#archive-copy').addEventListener('click', async () => {
+  const s = loadStats();
+  const text = `KEY BULLET CAREER RECORD\nRuns: ${s.totalRuns}\nStory Clears: ${s.storyClears}\nEndless Best Wave: ${s.endlessBestWave}\nTotal Score: ${s.totalScore}\nTotal Graze: ${s.totalGrazes}\nBest Accuracy: ${s.bestAccuracy.toFixed(1)}%`;
+  try {
+    await navigator.clipboard.writeText(text);
+    $('#archive-copy').textContent = 'COPIED ✓';
+  } catch {
+    $('#archive-copy').textContent = 'COPY BLOCKED';
+  }
+});
+
+document.querySelectorAll<HTMLButtonElement>('.transfer-tab').forEach((button) => {
   button.addEventListener('click', () => setTransferMode(button.dataset.tab as 'export' | 'import'));
 });
 $('#transfer-action').addEventListener('click', async () => {
