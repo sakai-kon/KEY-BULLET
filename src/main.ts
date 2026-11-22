@@ -4,6 +4,7 @@ declare const __APP_VERSION__: string;
 import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, countNewMistakes, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
+import { initializeCloudAccount } from './cloud';
 import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats } from './persistence';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -566,7 +567,7 @@ function finishRun(reason: EndReason): void {
   });
   $('#result-overline').textContent = reason === 'clear' ? 'MISSION COMPLETE' : 'SIGNAL LOST';
   $('#result-title').textContent = reason === 'clear' ? 'SYSTEM CLEAR' : 'GAME OVER';
-  $('#result-description').textContent = reason === 'clear' ? '全セグメントを突破。戦績をローカルに保存しました。' : '被弾回数が上限に到達。戦績をローカルに保存しました。';
+  $('#result-description').textContent = reason === 'clear' ? '全セグメントを突破。戦績を保存しました。' : '被弾回数が上限に到達。戦績を保存しました。';
   $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
   $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
   $('#result-stage').textContent = currentMode === 'STORY' ? `STAGE ${snapshot.stage}` : `WAVE ${snapshot.wave}`;
@@ -810,6 +811,7 @@ function updateClock(): void {
   clockFrame = requestAnimationFrame(updateClock);
 }
 
+initializeCloudAccount();
 renderCareer();
 renderProfile();
 updateContinueButton();
