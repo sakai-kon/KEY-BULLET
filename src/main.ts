@@ -885,6 +885,7 @@ $('#game-menu').addEventListener('click', () => {
   stopAutoTyping();
   window.dispatchEvent(new Event('key-bullet:online-match-exit'));
   onlineMatchMode = null;
+  renderAdminAssistStatus();
   game.setOnlineMode(null);
   game.stop();
   currentPhase = 'ended';
@@ -922,6 +923,7 @@ $('#result-menu').addEventListener('click', () => {
   stopAutoTyping();
   window.dispatchEvent(new Event('key-bullet:online-match-exit'));
   onlineMatchMode = null;
+  renderAdminAssistStatus();
   game.setOnlineMode(null);
   $('#result-retry').removeAttribute('hidden');
   $('#result-menu').textContent = 'BACK TO MENU';
