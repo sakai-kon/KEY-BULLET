@@ -3,6 +3,7 @@ import type { Genre } from './data';
 
 export type GameMode = 'STORY' | 'ENDLESS';
 export type GamePhase = 'typing' | 'bullet' | 'ended';
+export type GameDifficulty = 'normal' | 'easy';
 export type EndReason = 'clear' | 'gameover';
 
 export interface GameSnapshot {
@@ -50,6 +51,7 @@ export class GameEngine {
   private uiTimer = 0;
   private active = false;
   private mode: GameMode = 'STORY';
+  private difficulty: GameDifficulty = 'normal';
   private phase: GamePhase = 'typing';
   private stage = 1;
   private wave = 1;
@@ -119,13 +121,18 @@ export class GameEngine {
     this.raf = requestAnimationFrame(this.loop);
   }
 
+  private get isEasyMode(): boolean { return this.difficulty === 'easy' && this.onlineMode === null; }
+  private get phaseDuration(): number { return this.isEasyMode ? 16 : 20; }
+  private get maxLives(): number { return this.isEasyMode ? 5 : 3; }
+  private get maxBombs(): number { return this.isEasyMode ? 4 : 3; }
+
   getSnapshot(): GameSnapshot {
     return {
       active: this.active, mode: this.mode, phase: this.phase, stage: this.stage,
       wave: this.wave, segment: this.segment, segments: this.segments,
       hp: this.hp, hpMax: this.hpMax, lives: this.lives, bombs: this.bombs,
       score: this.score, grazes: this.grazes, danger: this.danger,
-      timeLeft: Math.max(0, 20 - this.phaseElapsed), power: this.power,
+      timeLeft: Math.max(0, this.phaseDuration - this.phaseElapsed), power: this.power,
       form: this.hp <= 34 ? 2 : this.hp <= 67 ? 1 : 0, reason: this.reason,
     };
   }
@@ -140,8 +147,8 @@ export class GameEngine {
     this.segments = this.onlineMode === 'raid' ? 1 : mode === 'STORY' ? 3 : 2;
     this.hpMax = SEGMENT_HP;
     this.hp = SEGMENT_HP;
-    this.lives = resume?.lives ?? 3;
-    this.bombs = resume?.bombs ?? 2;
+    this.lives = this.isEasyMode ? 5 : resume?.lives ?? 3;
+    this.bombs = this.isEasyMode ? 4 : resume?.bombs ?? 2;
     this.score = resume?.score ?? 0;
     this.grazes = 0;
     this.danger = 0;
@@ -149,7 +156,7 @@ export class GameEngine {
     this.power = 1.4;
     this.accuracy = 100;
     this.typingChars = 0;
-    this.spawnTimer = 0;
+    this.spawnTimer = this.isEasyMode ? 0.45 : 0.25;
     this.barrageIndex = 0;
     this.shotTimer = 0;
     this.invulnerable = 0;
@@ -170,7 +177,14 @@ export class GameEngine {
 
   setOnlineMode(mode: 'pvp' | 'raid' | null): void {
     this.onlineMode = mode;
-    if (mode !== null) this.setAutoDodgeEnabled(false);
+    if (mode !== null) {
+      this.difficulty = 'normal';
+      this.setAutoDodgeEnabled(false);
+    }
+  }
+
+  setDifficulty(difficulty: GameDifficulty): void {
+    this.difficulty = this.onlineMode === null ? difficulty : 'normal';
   }
 
   setAutoDodgeEnabled(enabled: boolean): void {
@@ -205,7 +219,7 @@ export class GameEngine {
 
   addMistake(): void {
     if (!this.active || this.phase !== 'typing') return;
-    this.danger = Math.min(12, this.danger + 1);
+    this.danger = Math.min(this.isEasyMode ? 4 : 12, this.danger + 1);
     this.spawnParticles(this.bossX(), this.bossY(), 4, '#FF2A5F');
     this.notify();
   }
@@ -285,7 +299,7 @@ export class GameEngine {
 
     this.phaseElapsed += dt;
     const slow = this.keys.has('shift');
-    let speed = slow ? 118 : 275;
+    let speed = this.isEasyMode ? (slow ? 145 : 310) : (slow ? 118 : 275);
     let dx = 0; let dy = 0;
 
     if (this.autoDodgeEnabled && this.onlineMode === null) {
@@ -311,7 +325,9 @@ export class GameEngine {
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
       this.spawnBarrage();
-      this.spawnTimer = Math.max(0.32, 0.7 - this.danger * 0.025);
+      this.spawnTimer = this.isEasyMode
+        ? Math.max(0.78, 1.12 - this.danger * 0.012)
+        : Math.max(0.32, 0.7 - this.danger * 0.025);
     }
 
     // The typing result controls the automatic shot rate, impact, and beam width.
@@ -319,7 +335,7 @@ export class GameEngine {
     const fireInterval = Math.max(0.075, 0.2 - this.power * 0.027);
     while (this.shotTimer >= fireInterval) {
       this.shotTimer -= fireInterval;
-      if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval;
+      if (this.onlineMode === null) this.hp -= (1.3 + this.power * 1.6) * fireInterval * (this.isEasyMode ? 1.35 : 1);
       this.score += 1;
       this.particles.push({ x: WIDTH / 2 + (Math.random() - 0.5) * 16, y: 186 + Math.random() * 15, vx: 0, vy: -130, life: 0.23, maxLife: 0.23, color: '#00F0FF', size: 3 + this.power });
     }
@@ -330,7 +346,7 @@ export class GameEngine {
       this.completeSegment();
       return;
     }
-    if (this.phaseElapsed >= 20) {
+    if (this.phaseElapsed >= this.phaseDuration) {
       this.danger = Math.max(0, this.danger - 1);
       this.bullets = [];
       this.setPhase('typing');
@@ -396,10 +412,10 @@ export class GameEngine {
       bullet.y += bullet.vy * dt;
       if (bullet.x < -30 || bullet.x > WIDTH + 30 || bullet.y < -30 || bullet.y > HEIGHT + 30) continue;
       const distance = Math.hypot(bullet.x - this.player.x, bullet.y - this.player.y);
-      const hitDistance = bullet.r + this.player.radius;
+      const hitDistance = bullet.r + this.player.radius - (this.isEasyMode ? 1.6 : 0);
       if (distance < hitDistance && this.invulnerable <= 0) {
         this.lives--;
-        this.invulnerable = 1.25;
+        this.invulnerable = this.isEasyMode ? 2 : 1.25;
         this.hitFlash = 0.28;
         this.spawnParticles(this.player.x, this.player.y, 18, '#FF2A5F');
         if (this.lives <= 0) { this.finish('gameover'); return; }
@@ -414,10 +430,11 @@ export class GameEngine {
   }
 
   private spawnBarrage(): void {
-    const extra = Math.min(9, this.danger);
+    const extra = Math.min(this.isEasyMode ? 4 : 9, this.danger);
     const pattern = this.barrageIndex++;
     const progression = this.mode === 'STORY' ? this.stage - 1 : Math.min(5, this.wave - 1);
-    const count = 8 + extra + Math.min(3, progression);
+    const baseCount = 8 + extra + Math.min(3, progression);
+    const count = this.isEasyMode ? Math.max(4, Math.round(baseCount * 0.5)) : baseCount;
     const bx = this.bossX();
     const by = this.bossY() + 16;
     const aimed = Math.atan2(this.player.y - by, this.player.x - bx);
@@ -428,14 +445,14 @@ export class GameEngine {
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0 : i / (count - 1) - 0.5;
       const angle = aimed + sweep + t * spread + Math.sin(this.frame * 2 + i) * 0.025;
-      const velocity = 126 + (i % 3) * 15 + Math.min(40, extra * 3) + progression * 4;
+      const velocity = (126 + (i % 3) * 15 + Math.min(40, extra * 3) + progression * 4) * (this.isEasyMode ? 0.68 : 1);
       this.bullets.push({ x: bx, y: by, vx: Math.cos(angle) * velocity, vy: Math.sin(angle) * velocity, r: i % 4 === 0 ? 6 : 4.4, grazed: false });
     }
 
     // Alternating flank shots pass through the outer lanes to discourage static corner camping.
-    if (pattern % 2 === 1) {
+    if (this.isEasyMode ? pattern % 4 === 3 : pattern % 2 === 1) {
       const laneY = 190 + ((pattern * 47) % 125);
-      const flankSpeed = 150 + progression * 5 + Math.min(24, extra * 2);
+      const flankSpeed = (150 + progression * 5 + Math.min(24, extra * 2)) * (this.isEasyMode ? 0.72 : 1);
       const downSpeed = 72 + (pattern % 3) * 12;
       this.bullets.push(
         { x: 18, y: laneY, vx: flankSpeed, vy: downSpeed, r: 4.2, grazed: false },
@@ -473,7 +490,7 @@ export class GameEngine {
         this.hpMax = SEGMENT_HP;
         this.danger = 0;
         this.phaseElapsed = 0;
-        this.lives = Math.min(3, this.lives + 1);
+        this.lives = Math.min(this.maxLives, this.lives + 1);
         this.setPhase('typing');
         this.onSegmentClear();
       }
@@ -485,7 +502,7 @@ export class GameEngine {
       this.danger = 0;
       this.phaseElapsed = 0;
       this.lives = Math.min(3, this.lives + 1);
-      this.bombs = Math.min(3, this.bombs + 1);
+      this.bombs = Math.min(this.maxBombs, this.bombs + 1);
       this.setPhase('typing');
       this.onWaveClear(this.getSnapshot());
       this.onSegmentClear();
