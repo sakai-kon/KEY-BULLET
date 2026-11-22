@@ -1,5 +1,7 @@
 # KEY BULLET
 
+**Current version: `v0.2.0` (Beta)**
+
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
 > Type. Dodge. Survive.
@@ -10,7 +12,7 @@
 - **ENDLESS** — infinite waves with an automatic local checkpoint after each cleared wave.
 - **Five typing categories** — code, original anime-style lines, mixed random, short Japanese text, and long Japanese text.
 - **Two alternating phases** — untimed typing to power the next shot, followed by a 20-second bullet-hell dodge phase.
-- **Romaji variants** — common `si/shi`, `ti/chi`, `tu/tsu`, `hu/fu`, and `nn/n` input variants are normalized.
+- **Japanese IME input** — type Japanese prompts directly with your IME and confirm kanji/kana conversion; conversion composition is not evaluated until committed. Code prompts are entered as displayed.
 - **Movement** — WASD or arrow keys, Shift for slow movement and core visibility, plus relative pointer dragging on the canvas.
 - **Bomb** — `Ctrl + C` clears all bullets during the dodge phase.
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
@@ -59,9 +61,17 @@ The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages
 ```text
 src/
   audio.ts        Web Audio music and SFX generator
-  data.ts         Typing prompt categories and romaji normalization
+  data.ts         Typing prompt categories and Japanese text matching
   engine.ts       Canvas renderer, phases, bullets, scoring and progression
   main.ts         UI, input wiring, menus, stats and modal behavior
   persistence.ts  Local saves and transfer-code import/export
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
+
+
+## Versioning
+
+- The application version is maintained in `package.json`.
+- The header badge is injected automatically from that version during the Vite build.
+- Add a dated entry to `CHANGELOG.md` whenever the version is changed.
+- Follow Semantic Versioning: increment patch for fixes, minor for backward-compatible features, and major for incompatible changes.
