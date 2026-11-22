@@ -2,6 +2,14 @@
 
 All notable changes to KEY BULLET are documented here.
 
+## [0.3.0] - 2026-11-22
+
+- Replaced Supabase email/password authentication with Clerk's standard SignIn and UserButton components.
+- Enabled Discord, GitHub, and email/password sign-in through the selected Clerk development instance.
+- Connected Supabase requests to the active Clerk session token.
+- Migrated cloud-save ownership from Supabase Auth UUIDs to Clerk string user IDs and issuer-scoped RLS policies.
+- Preserved guest play, local career records, ENDLESS checkpoints, and automatic cloud synchronization.
+
 ## [0.2.5] - 2026-11-22
 
 - Added Supabase email/password account registration, sign-in, and sign-out.

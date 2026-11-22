@@ -1,4 +1,5 @@
-import { createClient, type User } from '@supabase/supabase-js';
+import { Clerk } from '@clerk/clerk-js';
+import { createClient } from '@supabase/supabase-js';
 import {
   clearEndlessSave,
   EMPTY_STATS,
@@ -10,22 +11,35 @@ import {
   type EndlessSave,
 } from './persistence';
 
-// Publishable keys are designed for browser use. Row access is protected by RLS.
+// Both keys are public browser keys. Database access is restricted by RLS.
+const CLERK_PUBLISHABLE_KEY = 'pk_test_c3BlY2lhbC1nYW5uZXQtOTAyLmNsZXJrLmFjY291bnRzLmRldiQ';
 const SUPABASE_URL = 'https://mlpgmsdcgddbpzmjmjvw.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_w8TLRzk_eUvYjFHBoU8KQQ_bk6sSbZL';
 const ACCOUNT_LINK_KEY = 'key-bullet:cloud-user:v1';
 
+declare global {
+  interface Window {
+    __internal_ClerkUICtor?: unknown;
+  }
+}
+
+type CloudUser = {
+  id: string;
+  primaryEmailAddress?: { emailAddress: string } | null;
+};
+
+const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    persistSession: true,
-  },
+  accessToken: async () => clerk.session?.getToken() ?? null,
 });
 
-let activeUser: User | null = null;
+let activeUser: { id: string; email: string | null } | null = null;
+let clerkReady = false;
 let cloudReady = false;
 let restoringCloudData = false;
+let signInMounted = false;
+let userButtonMounted = false;
+let lastSyncedUserId: string | null = null;
 let writeQueue: Promise<void> = Promise.resolve();
 let cloudStatus = 'ログインすると、この端末の戦績をクラウドに保存できます。';
 
@@ -48,13 +62,57 @@ function setCloudStatus(message: string, isError = false): void {
 
 function renderAccountState(): void {
   const signedIn = Boolean(activeUser);
-  getElement<HTMLElement>('#cloud-signed-out').hidden = signedIn;
-  getElement<HTMLElement>('#cloud-signed-in').hidden = !signedIn;
-  getElement<HTMLElement>('#cloud-user-email').textContent = activeUser?.email ?? '';
-  const button = getElement<HTMLButtonElement>('#cloud-account-open');
-  button.querySelector('.button-caption')!.textContent = signedIn ? 'ONLINE' : 'ACCOUNT';
-  button.setAttribute('aria-label', signedIn ? 'Online account settings' : 'Sign in to online account');
+  const signedOutPanel = document.querySelector<HTMLElement>('#cloud-signed-out');
+  const signedInPanel = document.querySelector<HTMLElement>('#cloud-signed-in');
+  const accountButton = document.querySelector<HTMLButtonElement>('#cloud-account-open');
+  const syncButton = document.querySelector<HTMLButtonElement>('#cloud-sync');
+
+  if (signedOutPanel) signedOutPanel.hidden = signedIn;
+  if (signedInPanel) signedInPanel.hidden = !signedIn;
+  const email = document.querySelector<HTMLElement>('#cloud-user-email');
+  if (email) email.textContent = activeUser?.email ?? 'Clerk account';
+  if (accountButton) {
+    const caption = accountButton.querySelector<HTMLElement>('.button-caption');
+    if (caption) caption.textContent = signedIn ? 'ONLINE' : 'ACCOUNT';
+    accountButton.setAttribute('aria-label', signedIn ? 'Online account settings' : 'Sign in to online account');
+  }
+  if (syncButton) syncButton.disabled = !signedIn || !cloudReady;
   setCloudStatus(cloudStatus);
+}
+
+async function loadClerkUiBundle(): Promise<void> {
+  if (window.__internal_ClerkUICtor) return;
+  const encodedDomain = CLERK_PUBLISHABLE_KEY.split('_')[2];
+  if (!encodedDomain) throw new Error('Clerk Publishable Keyの形式を確認してください。');
+  const clerkDomain = atob(encodedDomain).slice(0, -1);
+
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://${clerkDomain}/npm/@clerk/ui@1/dist/ui.browser.js`;
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Clerkの標準UIを読み込めませんでした。'));
+    document.head.append(script);
+  });
+
+  if (!window.__internal_ClerkUICtor) {
+    throw new Error('Clerk UIの初期化に失敗しました。');
+  }
+}
+
+function mountClerkControls(): void {
+  if (!clerkReady) return;
+  if (activeUser && !userButtonMounted) {
+    const root = getElement<HTMLDivElement>('#clerk-user-button');
+    clerk.mountUserButton(root);
+    userButtonMounted = true;
+  }
+  if (!activeUser && !signInMounted) {
+    const root = getElement<HTMLDivElement>('#clerk-sign-in');
+    clerk.mountSignIn(root);
+    signInMounted = true;
+  }
 }
 
 function parseCareerStats(value: unknown): CareerStats | null {
@@ -136,8 +194,9 @@ async function applyRemoteSnapshot(stats: CareerStats, endless: EndlessSave | nu
   }
 }
 
-async function syncAfterSignIn(user: User): Promise<void> {
+async function syncAfterSignIn(user: { id: string }): Promise<void> {
   cloudReady = false;
+  renderAccountState();
   try {
     const previousOwner = localStorage.getItem(ACCOUNT_LINK_KEY);
     const { data, error } = await supabase
@@ -149,8 +208,8 @@ async function syncAfterSignIn(user: User): Promise<void> {
     if (error) throw error;
 
     if (!data) {
-      // Import guest progress for the first account on this browser, but never
-      // copy another signed-in user's local data into a different account.
+      // Import guest progress on first sign-in, but never copy another
+      // signed-in user's local data into a different account.
       if (previousOwner && previousOwner !== user.id) {
         await applyRemoteSnapshot(EMPTY_STATS, null);
       }
@@ -177,6 +236,7 @@ async function syncAfterSignIn(user: User): Promise<void> {
     setCloudStatus(error instanceof Error ? `同期できませんでした：${error.message}` : 'クラウド同期に失敗しました。', true);
   } finally {
     cloudReady = true;
+    renderAccountState();
   }
 }
 
@@ -193,7 +253,7 @@ function queueLocalUpload(): void {
     });
 }
 
-export function initializeCloudAccount(): void {
+export async function initializeCloudAccount(): Promise<void> {
   const topActions = document.querySelector<HTMLElement>('.top-actions');
   if (!topActions) return;
 
@@ -213,33 +273,23 @@ export function initializeCloudAccount(): void {
       <div class="modal-overline">ONLINE ACCOUNT / CLOUD SAVE</div>
       <h2 id="cloud-account-title">PLAYER <span>ACCOUNT</span></h2>
       <div id="cloud-signed-out">
-        <p>メールアドレスとパスワードで登録・ログインできます。ゲストプレイも引き続き利用できます。</p>
-        <div class="cloud-auth-fields">
-          <label for="cloud-email">メールアドレス</label>
-          <input id="cloud-email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" />
-          <label for="cloud-password">パスワード <small>8文字以上</small></label>
-          <input id="cloud-password" type="password" autocomplete="new-password" minlength="8" />
-          <label for="cloud-password-confirm">パスワード（新規登録時の確認）</label>
-          <input id="cloud-password-confirm" type="password" autocomplete="new-password" minlength="8" />
-        </div>
-        <div class="modal-actions cloud-auth-actions">
-          <button class="primary-button" id="cloud-signup" type="button">CREATE ACCOUNT</button>
-          <button class="secondary-button" id="cloud-login" type="button">LOGIN</button>
-        </div>
+        <p>Clerkの標準画面から登録・ログインできます。Discord、GitHub、メールに対応しています。ゲストプレイも引き続き利用できます。</p>
+        <div id="clerk-sign-in" class="clerk-sign-in-root"></div>
       </div>
       <div id="cloud-signed-in" hidden>
         <div class="cloud-user-panel">
           <span class="cloud-state-label">SIGNED IN</span>
           <strong id="cloud-user-email"></strong>
-          <p>戦績とENDLESSの進行状況をこのアカウントに保存します。</p>
+          <div id="clerk-user-button" class="clerk-user-button-root"></div>
+          <p>プロフィール管理とログアウトはClerkの標準メニューから行えます。</p>
+          <p>戦績とENDLESSの進行状況はこのアカウントに保存されます。</p>
         </div>
         <div class="modal-actions cloud-auth-actions">
-          <button class="primary-button" id="cloud-sync" type="button">SYNC NOW</button>
-          <button class="secondary-button" id="cloud-signout" type="button">SIGN OUT</button>
+          <button class="primary-button" id="cloud-sync" type="button" disabled>SYNC NOW</button>
         </div>
       </div>
       <div class="transfer-message cloud-status" id="cloud-auth-message" aria-live="polite"></div>
-      <p class="cloud-privacy-note">メールアドレスは認証に使用され、ゲーム内には公開されません。登録前に保護者とも確認してください。</p>
+      <p class="cloud-privacy-note">メールアドレスは認証に使用され、ゲーム内には公開されません。アカウント登録は保護者とも確認してください。</p>
       <div class="modal-actions"><button class="secondary-button" id="cloud-close" type="button">CLOSE</button></div>
     </section>
   `;
@@ -248,86 +298,15 @@ export function initializeCloudAccount(): void {
   accountButton.addEventListener('click', () => {
     renderAccountState();
     modal.hidden = false;
+    mountClerkControls();
   });
   getElement<HTMLButtonElement>('#cloud-close').addEventListener('click', () => { modal.hidden = true; });
   modal.addEventListener('click', (event) => {
     if (event.target === modal) modal.hidden = true;
   });
 
-  getElement<HTMLButtonElement>('#cloud-signup').addEventListener('click', async () => {
-    const email = getElement<HTMLInputElement>('#cloud-email').value.trim();
-    const password = getElement<HTMLInputElement>('#cloud-password').value;
-    const confirmation = getElement<HTMLInputElement>('#cloud-password-confirm').value;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setCloudStatus('有効なメールアドレスを入力してください。', true);
-      return;
-    }
-    if (password.length < 8) {
-      setCloudStatus('パスワードは8文字以上にしてください。', true);
-      return;
-    }
-    if (password !== confirmation) {
-      setCloudStatus('確認用パスワードが一致しません。', true);
-      return;
-    }
-    const button = getElement<HTMLButtonElement>('#cloud-signup');
-    button.disabled = true;
-    try {
-      const emailRedirectTo = new URL('/KEY-BULLET/', window.location.origin).toString();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo },
-      });
-      if (error) throw error;
-      if (!data.session) {
-        setCloudStatus('確認メールを送信しました。メール内のリンクを開くと登録が完了します。');
-      } else {
-        setCloudStatus('アカウントを作成しました。クラウド同期を開始します。');
-      }
-    } catch (error) {
-      setCloudStatus(error instanceof Error ? error.message : 'アカウントを作成できませんでした。', true);
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  getElement<HTMLButtonElement>('#cloud-login').addEventListener('click', async () => {
-    const email = getElement<HTMLInputElement>('#cloud-email').value.trim();
-    const password = getElement<HTMLInputElement>('#cloud-password').value;
-    if (!email || !password) {
-      setCloudStatus('メールアドレスとパスワードを入力してください。', true);
-      return;
-    }
-    const button = getElement<HTMLButtonElement>('#cloud-login');
-    button.disabled = true;
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      setCloudStatus('ログインしました。クラウドデータを同期しています。');
-    } catch (error) {
-      setCloudStatus(error instanceof Error ? error.message : 'ログインできませんでした。', true);
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  getElement<HTMLButtonElement>('#cloud-signout').addEventListener('click', async () => {
-    const button = getElement<HTMLButtonElement>('#cloud-signout');
-    button.disabled = true;
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setCloudStatus('ログアウトしました。ゲストプレイは引き続き利用できます。');
-    } catch (error) {
-      setCloudStatus(error instanceof Error ? error.message : 'ログアウトできませんでした。', true);
-    } finally {
-      button.disabled = false;
-    }
-  });
-
   getElement<HTMLButtonElement>('#cloud-sync').addEventListener('click', async () => {
-    if (!activeUser) return;
+    if (!activeUser || !cloudReady) return;
     const button = getElement<HTMLButtonElement>('#cloud-sync');
     button.disabled = true;
     try {
@@ -340,18 +319,33 @@ export function initializeCloudAccount(): void {
   });
 
   window.addEventListener('key-bullet:local-data-changed', queueLocalUpload);
-  supabase.auth.onAuthStateChange((_event, session) => {
-    activeUser = session?.user ?? null;
-    cloudReady = false;
-    renderAccountState();
-    if (activeUser) {
-      const user = activeUser;
-      queueMicrotask(() => { void syncAfterSignIn(user); });
-    } else {
-      cloudReady = false;
-      setCloudStatus('ログインすると、この端末の戦績をクラウドに保存できます。');
-    }
-  });
+
+  try {
+    await loadClerkUiBundle();
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor as never } });
+    clerkReady = true;
+    clerk.addListener(({ user }) => {
+      const nextUser = user?.id
+        ? { id: user.id, email: (user as CloudUser).primaryEmailAddress?.emailAddress ?? null }
+        : null;
+      const changed = nextUser?.id !== activeUser?.id;
+      activeUser = nextUser;
+
+      if (!activeUser) {
+        lastSyncedUserId = null;
+        cloudReady = false;
+        setCloudStatus('ログインすると、この端末の戦績をクラウドに保存できます。');
+      } else if (changed || lastSyncedUserId !== activeUser.id) {
+        lastSyncedUserId = activeUser.id;
+        void syncAfterSignIn(activeUser);
+      }
+
+      renderAccountState();
+      if (!modal.hidden) mountClerkControls();
+    });
+  } catch (error) {
+    setCloudStatus(error instanceof Error ? error.message : 'Clerkを初期化できませんでした。', true);
+  }
 
   renderAccountState();
 }

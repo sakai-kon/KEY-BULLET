@@ -1,6 +1,6 @@
 # KEY BULLET
 
-**Current version: `v0.2.5` (Beta)**
+**Current version: `v0.3.0` (Beta)**
 
 **KEY BULLET** is a cyber-minimal 2D typing + bullet-hell game built with Vite, TypeScript, HTML5 Canvas, and Web Audio API.
 
@@ -19,7 +19,7 @@
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
-- **Online accounts** — Supabase email/password registration, sign-in, sign-out, and cloud sync for career stats and ENDLESS checkpoints. Guest play remains available.
+- **Online accounts** — Clerk standard authentication UI with Discord, GitHub, and email/password; Supabase stores per-account career stats and ENDLESS checkpoints. Guest play remains available.
 - **No external image or audio assets** — all art is drawn from symmetric pixel arrays and all sound is synthesized in-browser.
 
 ## Requirements
@@ -27,6 +27,8 @@
 A modern desktop browser and a physical keyboard. The layout also supports tablets with an attached keyboard. Touch-only play is not supported.
 
 ## Development
+
+The selected Clerk publishable key is configured in `src/cloud.ts`. It is a public browser key, not a secret. Then run:
 
 ```bash
 npm install
@@ -46,14 +48,24 @@ npm run build
 npm run preview
 ```
 
-The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages. Online accounts and cloud saves use the configured Supabase project; guest play still works without signing in.
+The Vite build is static and can be deployed to GitHub Pages or Cloudflare Pages. The browser uses only public Clerk and Supabase publishable keys. Never add a Clerk Secret Key or Supabase secret/service-role key to frontend code.
+
+### Clerk dashboard configuration
+
+- Use the existing `KEY_BULLET` Clerk application.
+- Enable Discord and GitHub under social connections.
+- Enable email address and password sign-in, and require email verification.
+- Add `https://sakai-kon.github.io` as an allowed origin / redirect host where the Clerk dashboard requests it.
+- The development instance is configured to include the `role: authenticated` claim in session tokens.
 
 ### Supabase dashboard configuration
 
 - Keep the **Data API** enabled and include `public` in the exposed schemas.
-- Keep the **Email** authentication provider enabled.
-- Set the Site URL to `https://sakai-kon.github.io/KEY-BULLET/` and add that same address to the allowed Redirect URLs.
-- The browser uses only the project's publishable key. Never add a `service_role` or secret key to the frontend.
+- Under **Authentication → Sign In / Providers → Third-Party Auth**, add Clerk using the issuer domain `https://special-gannet-902.clerk.accounts.dev`.
+- In Clerk's **Connect with Supabase** setup, make sure the same Clerk instance is connected to the Supabase project.
+- Keep RLS enabled on `public.player_cloud_saves`. The policies restrict every operation to the matching Clerk issuer and the current JWT subject.
+- The database stores Clerk IDs as text; it no longer references `auth.users`.
+- The browser uses only the Supabase publishable key. Never add a `service_role` or secret key to the frontend.
 
 ## Persistence and transfer
 
@@ -80,10 +92,9 @@ src/
   engine.ts       Canvas renderer, phases, bullets, scoring and progression
   main.ts         UI, input wiring, menus, stats and modal behavior
   persistence.ts  Local saves and transfer-code import/export
-  cloud.ts        Supabase Auth and per-user cloud synchronization
+  cloud.ts        Clerk authentication and Supabase cloud synchronization
   pixel.ts        Symmetric 24x24 pixel sprite arrays and palettes
 ```
-
 
 ## Versioning
 

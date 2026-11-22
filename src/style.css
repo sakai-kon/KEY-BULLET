@@ -1017,3 +1017,31 @@ h1 span { text-shadow: none; }
   .brand { gap: 5px; min-width: 0; }
   .brand-name { font-size: 10px; letter-spacing: .1em; }
 }
+
+
+/* Clerk's standard authentication UI inside the existing account modal. */
+.clerk-sign-in-root {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 390px;
+  margin: 8px 0 14px;
+}
+.clerk-sign-in-root > * {
+  max-width: 100%;
+}
+.clerk-user-button-root {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  min-height: 42px;
+}
+#cloud-sync:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+@media (max-width: 560px) {
+  .clerk-sign-in-root {
+    min-height: 360px;
+  }
+}
