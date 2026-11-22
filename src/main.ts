@@ -19,7 +19,7 @@ app.innerHTML = `
         <span class="brand-name">KEY <b>BULLET</b></span>
         <span class="build-tag" aria-label="アプリのバージョン">BETA v${__APP_VERSION__}</span>
       </a>
-      <div class="top-status"><span class="status-dot"></span><span id="system-status">SYSTEM STANDBY</span><span class="status-divider"></span><span>NO EXTERNAL ASSETS</span></div>
+      <div class="top-status"><span class="status-dot"></span><span id="system-status">SYSTEM STANDBY</span><span class="status-divider"></span><span id="admin-assist-status" hidden style="color:#F2C47C;font-size:9px;font-weight:800;letter-spacing:.08em">ADMIN ASSIST ACTIVE</span><span>NO EXTERNAL ASSETS</span></div>
       <div class="top-actions">
         <button class="icon-button" id="sound-toggle" type="button" aria-label="Toggle sound"><span id="sound-icon">♪</span><span class="button-caption">SOUND</span></button>
         <button class="icon-button" id="profile-open" type="button" aria-label="Profile settings"><span>◎</span><span class="button-caption" id="profile-label">PROFILE</span></button><button class="icon-button" id="stats-open" type="button" aria-label="Open stats"><span>▤</span><span class="button-caption">RECORD</span></button>
@@ -380,6 +380,12 @@ let bestAccuracy = 0;
 let lastSnapshot: GameSnapshot | null = null;
 let transferMode: 'export' | 'import' = 'export';
 let latestStats = loadStats();
+
+function renderAdminAssistStatus(): void {
+  const indicator = document.querySelector<HTMLElement>('#admin-assist-status');
+  if (!indicator) return;
+  indicator.hidden = !(onlineMatchMode !== null && adminAssistAccess && (adminAutoTyping || adminAutoDodge));
+}
 
 const game = new GameEngine(canvas, {
   onChange: (snapshot) => { lastSnapshot = snapshot; renderSnapshot(snapshot); updateTypingPanelState(); },
@@ -1032,6 +1038,7 @@ window.addEventListener('key-bullet:online-start', (event) => {
   const detail = (event as CustomEvent<{ mode: 'pvp' | 'raid' }>).detail;
   if (!detail || !['pvp', 'raid'].includes(detail.mode)) return;
   onlineMatchMode = detail.mode;
+  renderAdminAssistStatus();
   game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
   beginRun('STORY');
   if (detail.mode === 'raid') game.setOnlineBossHp(1400, 1400);
@@ -1073,6 +1080,7 @@ window.addEventListener('key-bullet:online-result', (event) => {
   updateTypingPanelState();
   showScreen('result');
   onlineMatchMode = null;
+  renderAdminAssistStatus();
   game.setOnlineMode(null);
   game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
 });
@@ -1080,12 +1088,13 @@ window.addEventListener('key-bullet:online-result', (event) => {
 window.addEventListener('key-bullet:admin-access', (event) => {
   const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
   adminAssistAccess = detail?.enabled === true;
+  renderAdminAssistStatus();
   if (!adminAssistAccess) {
     adminAutoTyping = false;
     adminAutoDodge = false;
     stopAutoTyping();
   }
-  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge && onlineMatchMode === null);
+  game.setAutoDodgeEnabled(adminAssistAccess && adminAutoDodge);
   if (publicGameSettings.difficulty_override !== 'off' && !adminAssistAccess) {
     currentDifficulty = publicGameSettings.difficulty_override;
   } else {
@@ -1124,6 +1133,7 @@ window.addEventListener('key-bullet:admin-assist', (event) => {
   const detail = (event as CustomEvent<{ autoTyping?: boolean; autoDodge?: boolean }>).detail;
   adminAutoTyping = detail?.autoTyping === true;
   adminAutoDodge = detail?.autoDodge === true;
+  renderAdminAssistStatus();
   game.setAutoDodgeEnabled(adminAutoDodge);
   if (adminAutoTyping && currentPhase === 'typing' && lastSnapshot?.active) {
     startAutoTyping();
