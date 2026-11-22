@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: '/KEY-BULLET/',
   server: { host: '0.0.0.0' },
 });
