@@ -413,14 +413,14 @@ export class GameEngine {
     this.drawParticles();
     this.drawCanvasHud();
     if (this.bombFlash > 0) {
-      ctx.fillStyle = `rgba(0,240,255,${this.bombFlash * 0.24})`;
+      ctx.fillStyle = `rgba(131,187,192,${this.bombFlash * 0.09})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
-      ctx.strokeStyle = `rgba(150,255,255,${this.bombFlash})`;
+      ctx.strokeStyle = `rgba(174,215,216,${this.bombFlash * 0.52})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(this.player.x, this.player.y, (1 - this.bombFlash) * 340, 0, Math.PI * 2); ctx.stroke();
     }
     if (this.hitFlash > 0) {
-      ctx.fillStyle = `rgba(255,42,95,${this.hitFlash * 0.24})`;
+      ctx.fillStyle = `rgba(199,124,141,${this.hitFlash * 0.08})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
     }
   }
@@ -431,7 +431,7 @@ export class GameEngine {
     gradient.addColorStop(0, '#10182A'); gradient.addColorStop(1, '#080C14');
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.save();
-    ctx.strokeStyle = 'rgba(0,240,255,0.055)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(131,187,192,0.028)'; ctx.lineWidth = 1;
     for (let x = 0; x <= WIDTH; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, HEIGHT); ctx.stroke(); }
     for (let y = 0; y <= HEIGHT; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WIDTH, y); ctx.stroke(); }
     for (const star of this.stars) {
@@ -439,9 +439,9 @@ export class GameEngine {
       ctx.fillRect(star.x, star.y, star.size, star.size);
     }
     ctx.restore();
-    ctx.fillStyle = 'rgba(0,240,255,0.025)';
+    ctx.fillStyle = 'rgba(131,187,192,0.012)';
     for (let y = 0; y < HEIGHT; y += 4) ctx.fillRect(0, y, WIDTH, 1);
-    ctx.strokeStyle = 'rgba(0,240,255,0.2)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(131,187,192,0.11)'; ctx.lineWidth = 1;
     ctx.strokeRect(14, 14, WIDTH - 28, HEIGHT - 28);
   }
 
@@ -451,12 +451,12 @@ export class GameEngine {
     const sprite = BOSS_SPRITES[form] ?? BOSS_SPRITES[0];
     const size = 112 + Math.sin(this.frame * 3) * 3;
     this.ctx.save();
-    this.ctx.shadowBlur = 24;
-    this.ctx.shadowColor = form === 0 ? '#00F0FF' : '#FF2A5F';
+    this.ctx.shadowBlur = 9;
+    this.ctx.shadowColor = form === 0 ? '#83BBC0' : '#C77C8D';
     drawPixelSprite(this.ctx, sprite, this.bossX(), this.bossY(), size, this.frame);
     this.ctx.restore();
     this.ctx.save();
-    this.ctx.strokeStyle = form === 0 ? 'rgba(0,240,255,.3)' : 'rgba(255,42,95,.38)';
+    this.ctx.strokeStyle = form === 0 ? 'rgba(131,187,192,.24)' : 'rgba(199,124,141,.27)';
     this.ctx.lineWidth = 1;
     this.ctx.beginPath(); this.ctx.ellipse(this.bossX(), this.bossY(), 84 + Math.sin(this.frame * 1.4) * 5, 58 + Math.cos(this.frame * 1.4) * 4, 0, 0, Math.PI * 2); this.ctx.stroke();
     this.ctx.restore();
@@ -469,8 +469,8 @@ export class GameEngine {
       const angle = this.frame * 0.8 + (i / Math.max(1, this.danger)) * Math.PI * 2;
       const x = this.bossX() + Math.cos(angle) * 76;
       const y = this.bossY() + Math.sin(angle) * 48;
-      ctx.save(); ctx.shadowColor = '#FF2A5F'; ctx.shadowBlur = 12;
-      ctx.fillStyle = '#FF2A5F'; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.shadowColor = '#C77C8D'; ctx.shadowBlur = 4;
+      ctx.fillStyle = '#C77C8D'; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
   }
 
@@ -478,9 +478,9 @@ export class GameEngine {
     const ctx = this.ctx;
     for (const bullet of this.bullets) {
       ctx.save();
-      ctx.shadowColor = '#FF2A5F'; ctx.shadowBlur = 14;
-      ctx.fillStyle = '#FF2A5F'; ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#FFE1E8'; ctx.beginPath(); ctx.arc(bullet.x - 1, bullet.y - 1, Math.max(1, bullet.r * 0.33), 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = '#C77C8D'; ctx.shadowBlur = 5;
+      ctx.fillStyle = '#C77C8D'; ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#F0DFE3'; ctx.beginPath(); ctx.arc(bullet.x - 1, bullet.y - 1, Math.max(1, bullet.r * 0.33), 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
   }
@@ -500,13 +500,13 @@ export class GameEngine {
   private drawPlayer(): void {
     const ctx = this.ctx;
     if (this.invulnerable > 0 && Math.floor(this.frame * 18) % 2 === 0) return;
-    ctx.save(); ctx.shadowColor = '#00F0FF'; ctx.shadowBlur = 18;
+    ctx.save(); ctx.shadowColor = '#83BBC0'; ctx.shadowBlur = 7;
     drawPixelSprite(ctx, PLAYER_SPRITE, this.player.x, this.player.y, 30, this.frame);
     ctx.restore();
     if (this.keys.has('shift')) {
-      ctx.strokeStyle = 'rgba(0,240,255,.8)'; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = 'rgba(131,187,192,.52)'; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 6.4, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 1.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#DDEBEC'; ctx.beginPath(); ctx.arc(this.player.x, this.player.y, 1.7, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -525,27 +525,27 @@ export class GameEngine {
     ctx.font = '600 11px ui-monospace, monospace';
     ctx.fillStyle = 'rgba(197,238,245,.78)';
     ctx.fillText(this.mode === 'STORY' ? `STORY / STAGE 0${this.stage}` : `ENDLESS / WAVE ${String(this.wave).padStart(2, '0')}`, 30, 36);
-    ctx.fillStyle = '#00F0FF'; ctx.fillText(`SEGMENT ${this.segment} / ${this.segments}`, 30, 54);
+    ctx.fillStyle = '#A3CBCD'; ctx.fillText(`SEGMENT ${this.segment} / ${this.segments}`, 30, 54);
     ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(197,238,245,.7)';
     ctx.fillText(this.phase === 'typing' ? 'PHASE 01  /  TYPE' : `PHASE 02  /  DODGE  ${Math.ceil(Math.max(0, 20 - this.phaseElapsed))}s`, WIDTH - 30, 36);
     ctx.fillText(`GRAZE ${String(this.grazes).padStart(4, '0')}`, WIDTH - 30, 54);
     const x = 260; const y = 25; const w = 440; const h = 5;
     ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = '#00F0FF';
+    ctx.fillStyle = '#83BBC0';
     const overallSegmentProgress = ((this.segment - 1) + Math.max(0, this.hp / this.hpMax)) / this.segments;
     ctx.fillRect(x, y, w * Math.max(0, Math.min(1, overallSegmentProgress)), h);
     for (let i = 1; i < this.segments; i++) {
       ctx.fillStyle = '#080C14'; ctx.fillRect(x + (w / this.segments) * i - 1, y - 2, 2, h + 4);
     }
-    ctx.textAlign = 'left'; ctx.font = '600 9px ui-monospace, monospace'; ctx.fillStyle = 'rgba(0,240,255,.75)';
+    ctx.textAlign = 'left'; ctx.font = '600 9px ui-monospace, monospace'; ctx.fillStyle = 'rgba(131,187,192,.72)';
     ctx.fillText(`BOMB × ${this.bombs}`, 30, HEIGHT - 24);
     ctx.fillStyle = 'rgba(210,230,238,.48)'; ctx.fillText('SHIFT / FOCUS CORE', 112, HEIGHT - 24);
     if (this.clearFlash > 0) {
       ctx.textAlign = 'center'; ctx.font = '700 24px ui-monospace, monospace';
-      ctx.fillStyle = `rgba(0,240,255,${this.clearFlash})`; ctx.fillText('SEGMENT BREAK', WIDTH / 2, HEIGHT / 2 + 4);
+      ctx.fillStyle = `rgba(131,187,192,${this.clearFlash * 0.55})`; ctx.fillText('SEGMENT BREAK', WIDTH / 2, HEIGHT / 2 + 4);
     }
     if (!this.active && this.reason === 'clear') {
-      ctx.textAlign = 'center'; ctx.font = '700 25px ui-monospace, monospace'; ctx.fillStyle = '#00F0FF'; ctx.fillText('SYSTEM CLEAR', WIDTH / 2, HEIGHT / 2 + 5);
+      ctx.textAlign = 'center'; ctx.font = '700 25px ui-monospace, monospace'; ctx.fillStyle = '#A3CBCD'; ctx.fillText('SYSTEM CLEAR', WIDTH / 2, HEIGHT / 2 + 5);
     }
     ctx.restore();
   }
