@@ -380,8 +380,8 @@ function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   currentMode = mode;
   bestAccuracy = 0;
   void audio.start('typing');
+  showScreen('game');
   $('#welcome-overlay').classList.add('hidden');
-  $('#result-modal').setAttribute('hidden', 'true');
   const save = resume && mode === 'ENDLESS' ? loadEndlessSave() : null;
   if (mode === 'ENDLESS' && !resume) clearEndlessSave();
   game.start(mode, save ? { wave: save.wave, score: save.score, lives: save.lives, bombs: save.bombs } : undefined);
@@ -407,7 +407,7 @@ function finishRun(reason: EndReason): void {
   $('#result-score').textContent = String(snapshot.score).padStart(6, '0');
   $('#result-graze').textContent = String(snapshot.grazes).padStart(4, '0');
   $('#result-stage').textContent = currentMode === 'STORY' ? `STAGE ${snapshot.stage}` : `WAVE ${snapshot.wave}`;
-  showScreen('result');\n  $('#result-modal').removeAttribute('hidden');
+  showScreen('result');
   renderCareer();
   updateContinueButton();
   audio.play(reason === 'clear' ? 'clear' : 'hit');
@@ -475,8 +475,11 @@ $('#endless-start').addEventListener('click', () => beginRun('ENDLESS'));
 $('#endless-continue').addEventListener('click', () => beginRun('ENDLESS', true));
 $('#result-retry').addEventListener('click', () => beginRun(currentMode));
 $('#result-menu').addEventListener('click', () => {
-  game.stop(); $('#result-modal').setAttribute('hidden', 'true'); $('#welcome-overlay').classList.remove('hidden');
-  $('#system-status').textContent = 'SYSTEM STANDBY'; currentPhase = 'ended'; updateTypingPanelState();
+  game.stop();
+  $('#system-status').textContent = 'SYSTEM STANDBY';
+  currentPhase = 'ended';
+  updateTypingPanelState();
+  showScreen('home');
 });
 
 document.querySelectorAll<HTMLButtonElement>('.genre-chip').forEach((button) => {
