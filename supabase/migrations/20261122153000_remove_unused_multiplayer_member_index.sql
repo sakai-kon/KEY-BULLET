@@ -1,0 +1,1 @@
+drop index if exists public.game_room_members_user_idx;
