@@ -152,6 +152,32 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   let lastAttackAt = 0;
   const lastIncomingPvpAttackAt = new Map<string, number>();
   const lastRaidAttackAt = new Map<string, number>();
+  let globalOnlineEnabled = true;
+  let adminPanelEnabled = false;
+
+  function applyOnlineAvailability(): void {
+    const blocked = !globalOnlineEnabled && !adminPanelEnabled;
+    trigger.disabled = blocked;
+    trigger.title = blocked ? '管理者がオンライン機能を停止しています。' : '';
+    const createButton = backdrop.querySelector<HTMLButtonElement>('#kb-online-create');
+    const joinButton = backdrop.querySelector<HTMLButtonElement>('#kb-online-join');
+    const codeInput = backdrop.querySelector<HTMLInputElement>('#kb-online-code-input');
+    if (createButton) createButton.disabled = blocked;
+    if (joinButton) joinButton.disabled = blocked;
+    if (codeInput) codeInput.disabled = blocked;
+  }
+
+  window.addEventListener('key-bullet:public-game-settings', (event) => {
+    const detail = (event as CustomEvent<{ online_enabled?: boolean }>).detail;
+    if (!detail) return;
+    globalOnlineEnabled = detail.online_enabled !== false;
+    applyOnlineAvailability();
+  });
+  window.addEventListener('key-bullet:admin-access', (event) => {
+    const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+    adminPanelEnabled = detail?.enabled === true;
+    applyOnlineAvailability();
+  });
 
   const setStatus = (message: string, isError = false): void => {
     const status = $('#kb-online-status');
@@ -404,6 +430,10 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   }
 
   async function createRoom(): Promise<void> {
+    if (!globalOnlineEnabled && !adminPanelEnabled) {
+      setStatus('管理者がオンライン機能を停止しています。', true);
+      return;
+    }
     if (!identity) {
       setStatus('オンライン対戦にはClerkログインが必要です。', true);
       return;
@@ -429,6 +459,10 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
   }
 
   async function joinRoom(): Promise<void> {
+    if (!globalOnlineEnabled && !adminPanelEnabled) {
+      setStatus('管理者がオンライン機能を停止しています。', true);
+      return;
+    }
     if (!identity) {
       setStatus('オンライン対戦にはClerkログインが必要です。', true);
       return;
@@ -491,7 +525,9 @@ export function initializeMultiplayer(supabase: SupabaseClient): MultiplayerCont
     dispatchGameStart();
   }
 
+  applyOnlineAvailability();
   trigger.addEventListener('click', () => {
+    if (!globalOnlineEnabled && !adminPanelEnabled) return;
     backdrop.hidden = false;
     if (!identity) setStatus('オンライン機能を使うには、先にACCOUNTからログインしてください。', true);
   });
