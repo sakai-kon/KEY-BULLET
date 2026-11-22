@@ -11,12 +11,12 @@
 - **STORY** — three stages, each with a segmented boss health bar and escalating pixel-art forms.
 - **ENDLESS** — infinite waves with an automatic local checkpoint after each cleared wave.
 - **Five typing categories / 617 prompts** — code, original dialogue-style lines across adventure, school, mecha, sports, fantasy, music, mystery, and sci-fi themes, mixed random, short Japanese text, and long Japanese text.
-- **Two alternating phases** — untimed typing to power the next shot, followed by a 20-second normal or 16-second EASY bullet-hell dodge phase.
-- **Japanese IME input and furigana** — type Japanese prompts directly with your IME and confirm kanji/kana conversion; conversion composition is not evaluated until committed. Common kanji words show local, offline furigana that can be toggled. Code prompts are entered as displayed.
+- **Two alternating phases** — untimed typing to power the next shot, followed by a 20-second NORMAL or 12-second EASY bullet-hell dodge phase.
+- **Japanese IME input and furigana** — type Japanese prompts directly with your IME and confirm kanji/kana conversion; conversion composition is not evaluated until committed. Expanded common-kanji readings show local, offline furigana that can be toggled. Code prompts are entered as displayed.
 - **Dynamic bullet patterns** — wide sweeping fans and alternating flank shots make fixed camping spots unsafe while preserving moving gaps.
 - **Movement** — WASD or arrow keys, Shift for slow movement and core visibility, plus relative pointer dragging on the canvas.
 - **Bomb** — `Ctrl + C` clears all bullets during the dodge phase.
-- **Very easy difficulty** — an optional solo-only setting with fewer, slower bullets, five lives, four bombs, lighter collision checks, and stronger shots. Online matches always use normal difficulty.
+- **Very easy difficulty** — an optional solo-only setting with fewer, slower bullets, nine lives, six bombs, much slower and sparser bullets, wider hit forgiveness, longer invulnerability, and stronger shots. Online matches always use normal difficulty.
 - **Graze scoring**, accumulated danger orbs after typing mistakes, and three escalating boss color forms.
 - **Generated 8-bit audio** — music and sound effects are synthesized with Web Audio API; no audio files are loaded.
 - **Career record tools** — copy a plain-text record and export/import all career stats with `KB-BETA-...` transfer codes.
