@@ -681,6 +681,10 @@ $('#typing-form').addEventListener('submit', (event) => {
 
 function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
   if (!adminAssistAccess && publicGameSettings.maintenance_mode) {
+    if (onlineMatchMode) {
+      onlineMatchMode = null;
+      window.dispatchEvent(new Event('key-bullet:online-match-exit'));
+    }
     window.alert(publicGameSettings.maintenance_message);
     return;
   }
@@ -761,7 +765,7 @@ function finishRun(reason: EndReason): void {
 function updateContinueButton(): void {
   const save = loadEndlessSave();
   const button = $('#endless-continue');
-  button.toggleAttribute('hidden', !save);
+  button.toggleAttribute('hidden', !save || (!publicGameSettings.endless_enabled && !adminAssistAccess));
   if (save) $('#continue-wave').textContent = String(save.wave).padStart(2, '0');
 }
 
