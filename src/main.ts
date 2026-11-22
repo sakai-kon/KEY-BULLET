@@ -1,5 +1,5 @@
 import './style.css';
-import { GENRES, getGenreLabel, getPrompt, bestPrefixLength, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
+import { GENRES, getGenreLabel, getPrompt, hasPotentialPrefix, isAnswerCorrect, normalizeTyping, type Genre, type TypingPrompt } from './data';
 import { GameEngine, type EndReason, type GamePhase, type GameSnapshot } from './engine';
 import { AudioSystem } from './audio';
 import { clearEndlessSave, exportTransferCode, importTransferCode, loadEndlessSave, loadStats, loadUserProfile, saveEndless, saveUserProfile, updateStats } from './persistence';
@@ -60,7 +60,7 @@ app.innerHTML = `
               <div class="typing-meta"><span id="prompt-genre">NO PROMPT</span><span class="meta-divider"></span><span id="prompt-clock">00.00s</span></div>
             </div>
             <div class="prompt-display" id="prompt-display">モードを選択すると、ここにタイピングのお題が表示される。</div>
-            <div class="prompt-note" id="prompt-note">5つのジャンルから出題。日本語はローマ字で入力。</div>
+            <div class="prompt-note" id="prompt-note">5つのジャンルから出題。日本語はIMEで変換して入力。</div>
             <form id="typing-form" autocomplete="off">
               <label class="sr-only" for="typing-input">Type the prompt</label>
               <div class="input-wrap"><span class="input-prefix">&gt;_</span><input id="typing-input" type="text" autocapitalize="off" spellcheck="false" placeholder="ここに入力して Enter で発射" disabled /><span class="input-ready" id="input-ready">LOCKED</span></div>
@@ -225,15 +225,15 @@ tutorialScreen.innerHTML = `
         <div class="modal-overline">STEP 01 / GAME FLOW</div>
         <h3>タイピングで攻撃、弾幕を避ける</h3>
         <p>KEY BULLETは「入力フェーズ」と「弾幕フェーズ」をくり返すゲーム。</p>
-        <ul><li>お題をローマ字で入力して攻撃する</li><li>敵の攻撃が始まったら、弾を避ける</li><li>敵のHPをすべて削ると次へ進む</li></ul>
+        <ul><li>日本語のお題はIMEで漢字・かなに変換して入力する（CODEは表示どおり入力）</li><li>敵の攻撃が始まったら、弾を避ける</li><li>敵のHPをすべて削ると次へ進む</li></ul>
       </div>
     </article>
     <article class="tutorial-page panel" data-tutorial-step="1" hidden>
-      <div class="tutorial-visual tutorial-visual-type"><span class="tutorial-prompt">お題：静かな夜に、星を見る。</span><span class="tutorial-input">&gt;_ shizuka na yoru ni <i>│</i></span><span class="tutorial-tip">ENTER で発射</span></div>
+      <div class="tutorial-visual tutorial-visual-type"><span class="tutorial-prompt">お題：静かな夜に、星を見る。</span><span class="tutorial-input">&gt;_ 静かな夜に、星を見る。 <i>│</i></span><span class="tutorial-tip">ENTER で発射</span></div>
       <div class="tutorial-copy">
         <div class="modal-overline">STEP 02 / TYPE TO ATTACK</div>
         <h3>表示された文章を入力しよう</h3>
-        <p>画面下のお題を、ローマ字で入力してEnterキーを押すとショットを発射する。</p>
+        <p>画面下に表示された日本語を、IMEで漢字・かなに変換しながら入力してEnterキーを押すとショットを発射する。CODEのお題は表示どおりに直接入力する。</p>
         <ul><li>最後まで正しく入力すると攻撃できる</li><li>速さと正確さがショットの威力に影響する</li><li>ミスをすると危険度が上がるので、あわてず正確に</li></ul>
       </div>
     </article>
@@ -337,6 +337,7 @@ let currentMode: 'STORY' | 'ENDLESS' = 'STORY';
 let phaseStartedAt = 0;
 let clockFrame = 0;
 let previousInputValue = '';
+let isImeComposing = false;
 let missCount = 0;
 let bestAccuracy = 0;
 let lastSnapshot: GameSnapshot | null = null;
@@ -391,8 +392,14 @@ function setupNewPrompt(): void {
   display.textContent = prompt.display;
   display.classList.toggle('code-prompt', Boolean(prompt.isCode));
   $('#prompt-note').textContent = prompt.note;
-  ($('#typing-input') as HTMLInputElement).value = '';
-  $('#typing-input').removeAttribute('disabled');
+  const typingInput = $('#typing-input') as HTMLInputElement;
+  typingInput.value = '';
+  typingInput.lang = prompt.isCode ? 'en' : 'ja';
+  typingInput.placeholder = prompt.isCode ? 'コードを入力して Enter で発射' : '表示された日本語を入力して Enter で発射';
+  typingInput.closest<HTMLElement>('.input-wrap')?.classList.remove('has-error');
+  $('#typing-feedback').classList.remove('is-error');
+  $('#prompt-note').textContent = prompt.isCode ? prompt.note : `${prompt.note} 日本語IMEで漢字・かなに変換して入力。`;
+  typingInput.removeAttribute('disabled');
   $('#fire-button').removeAttribute('disabled');
   $('#input-ready').textContent = 'READY';
   $('#metric-wpm').textContent = '—';
@@ -435,11 +442,14 @@ function calculateTyping(inputValue: string): { accuracy: number; speed: number;
   return { accuracy, speed, power, correct: isAnswerCorrect(inputValue, prompt.answers, Boolean(prompt.isCode)) };
 }
 
-$('#typing-input').addEventListener('input', () => {
-  if (!prompt || currentPhase !== 'typing') return;
-  const value = ($('#typing-input') as HTMLInputElement).value;
+function updateTypingInput(): void {
+  if (!prompt || currentPhase !== 'typing' || isImeComposing) return;
+  const input = $('#typing-input') as HTMLInputElement;
+  const value = input.value;
   const metrics = calculateTyping(value);
-  const length = normalizeTyping(value, Boolean(prompt.isCode)).length;
+  const prefixOk = hasPotentialPrefix(value, prompt.answers, Boolean(prompt.isCode));
+
+  // IMEの変換確定後にだけ判定し、変換途中の仮入力をミス扱いしない。
   if (value.length > previousInputValue.length && value.startsWith(previousInputValue)) {
     let candidate = previousInputValue;
     for (const char of value.slice(previousInputValue.length)) {
@@ -454,24 +464,54 @@ $('#typing-input').addEventListener('input', () => {
     }
   }
   previousInputValue = value;
+
   $('#metric-wpm').textContent = String(Math.round(metrics.speed * 12));
   $('#metric-accuracy').textContent = `${Math.round(metrics.accuracy)}%`;
   $('#metric-power').textContent = `${metrics.power.toFixed(2)}x`;
   $('#metric-misses').textContent = String(missCount).padStart(2, '0');
-  $('#typing-feedback').textContent = metrics.correct ? 'INPUT COMPLETE — ENTER でショットを発射。' : '入力中… 正確率を維持してショットを強化。';
+
+  input.closest<HTMLElement>('.input-wrap')?.classList.toggle('has-error', !prefixOk);
+  const feedback = $('#typing-feedback');
+  feedback.classList.toggle('is-error', !prefixOk);
+  feedback.textContent = !prefixOk
+    ? '入力ミス：お題と違う文字があります。Backspaceで修正してください。'
+    : metrics.correct
+      ? 'INPUT COMPLETE — ENTER でショットを発射。'
+      : '入力中… 日本語は変換を確定して続けてください。';
   $('#fire-button').classList.toggle('ready-to-fire', metrics.correct);
+}
+
+const typingInput = $('#typing-input') as HTMLInputElement;
+typingInput.addEventListener('compositionstart', () => {
+  isImeComposing = true;
+  const feedback = $('#typing-feedback');
+  feedback.classList.remove('is-error');
+  feedback.textContent = 'IME変換中…';
+});
+typingInput.addEventListener('compositionend', () => {
+  isImeComposing = false;
+  requestAnimationFrame(updateTypingInput);
+});
+typingInput.addEventListener('input', (event) => {
+  if (isImeComposing || (event as InputEvent).isComposing) return;
+  updateTypingInput();
 });
 
 $('#typing-form').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!prompt || currentPhase !== 'typing' || !lastSnapshot?.active) return;
+  if (isImeComposing) return;
   const value = ($('#typing-input') as HTMLInputElement).value;
   const metrics = calculateTyping(value);
   if (!metrics.correct) {
-    $('#typing-feedback').textContent = 'INPUT ERROR — お題を最後まで正確に入力してください。';
+    const feedback = $('#typing-feedback');
+    feedback.classList.add('is-error');
+    feedback.textContent = '入力エラー：お題を最後まで正確に入力してください。';
     audio.play('error');
     return;
   }
+  $('#typing-feedback').classList.remove('is-error');
+  ($('#typing-input') as HTMLInputElement).closest<HTMLElement>('.input-wrap')?.classList.remove('has-error');
   const chars = normalizeTyping(value, Boolean(prompt.isCode)).length;
   bestAccuracy = Math.max(bestAccuracy, metrics.accuracy);
   $('#metric-wpm').textContent = String(Math.round(metrics.speed * 12));
