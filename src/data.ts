@@ -5050,6 +5050,17 @@ PROMPTS.push(...GENERATED_PROMPTS);
 /** Total prompt count, including the original five code prompts. */
 export const PROMPT_COUNT = PROMPTS.length;
 
+export const PROMPT_STATS = {
+  total: PROMPTS.length,
+  uniqueTexts: new Set(PROMPTS.map((prompt) => prompt.display)).size,
+  byGenre: {
+    code: PROMPTS.filter((prompt) => prompt.genre === 'code').length,
+    anime: PROMPTS.filter((prompt) => prompt.genre === 'anime').length,
+    short: PROMPTS.filter((prompt) => prompt.genre === 'short').length,
+    long: PROMPTS.filter((prompt) => prompt.genre === 'long').length,
+  },
+};
+
 export function getPrompt(genre: Genre): TypingPrompt {
   const pool = genre === 'random' ? PROMPTS : PROMPTS.filter((p) => p.genre === genre);
   return pool[Math.floor(Math.random() * pool.length)] ?? PROMPTS[0];
