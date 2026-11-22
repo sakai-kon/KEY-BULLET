@@ -425,7 +425,9 @@ function renderDifficultySelection(): void {
 function renderPromptDisplay(): void {
   if (!prompt) return;
   const display = $('#prompt-display');
-  renderPromptWithFurigana(display, prompt.display, furiganaEnabled && !prompt.isCode);
+  const showFurigana = furiganaEnabled && !prompt.isCode;
+  renderPromptWithFurigana(display, prompt.display, showFurigana);
+  display.classList.toggle('has-furigana', showFurigana);
   display.classList.toggle('code-prompt', Boolean(prompt.isCode));
   const toggle = $('#furigana-toggle') as HTMLButtonElement;
   toggle.hidden = Boolean(prompt.isCode);
