@@ -1427,6 +1427,7 @@ body.kb-game-active .game-screen #typing-input {
 
 /* Combat focus: keep announcements out of the play viewport and prioritize the arena. */
 body.kb-game-active #kb-global-maintenance-banner,
+body.kb-game-active .kb-admin-banner,
 body.kb-game-active .kb-public-announcement,
 body.kb-game-active [data-public-announcement] {
   display: none !important;
