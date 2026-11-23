@@ -122,6 +122,22 @@ app.innerHTML = `
     </main>
   </div>
 
+  <section class="kb-maintenance-screen" id="maintenance-screen" hidden role="status" aria-live="polite" aria-labelledby="maintenance-title">
+    <div class="kb-maintenance-stars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="kb-maintenance-card">
+      <div class="kb-maintenance-brand"><span class="kb-maintenance-mark"><i></i><i></i><i></i></span><span>KEY <b>BULLET</b></span></div>
+      <div class="kb-maintenance-emblem" aria-hidden="true"><span></span><i></i><i></i><i></i></div>
+      <div class="kb-maintenance-kicker">SYSTEM // MAINTENANCE PROTOCOL</div>
+      <h1 id="maintenance-title">MAINTENANCE</h1>
+      <p class="kb-maintenance-subtitle">サービス一時停止中</p>
+      <div class="kb-maintenance-divider"></div>
+      <p class="kb-maintenance-message" id="maintenance-message">ただいまメンテナンス中です。しばらくしてから再度アクセスしてください。</p>
+      <div class="kb-maintenance-status"><span></span> SYSTEM TEMPORARILY OFFLINE</div>
+      <p class="kb-maintenance-footnote">メンテナンスが終了すると、自動的に通常画面へ戻ります。</p>
+    </div>
+    <div class="kb-maintenance-version">KEY BULLET / SERVICE STATUS</div>
+  </section>
+
   <div class="modal-backdrop" id="result-modal" hidden>
     <div class="modal-card">
       <div class="modal-overline" id="result-overline">RUN COMPLETE</div>
@@ -493,6 +509,20 @@ function renderDifficultySelection(): void {
 
 function renderGlobalAvailability(): void {
   const blockedByMaintenance = publicGameSettings.maintenance_mode && !adminAssistAccess;
+  const maintenanceScreen = $('#maintenance-screen') as HTMLElement;
+  maintenanceScreen.hidden = !blockedByMaintenance;
+  ($('#maintenance-message') as HTMLElement).textContent = publicGameSettings.maintenance_message;
+  document.body.classList.toggle('kb-maintenance-active', blockedByMaintenance);
+  const shell = document.querySelector<HTMLElement>('.shell');
+  if (shell) shell.hidden = blockedByMaintenance;
+  if (blockedByMaintenance && lastSnapshot?.active) {
+    stopAutoTyping();
+    if (onlineMatchMode) {
+      onlineMatchMode = null;
+      window.dispatchEvent(new Event('key-bullet:online-match-exit'));
+    }
+    game.stop();
+  }
   const storyDisabled = blockedByMaintenance || (!publicGameSettings.story_enabled && !adminAssistAccess);
   const endlessDisabled = blockedByMaintenance || (!publicGameSettings.endless_enabled && !adminAssistAccess);
   ($('#story-start') as HTMLButtonElement).disabled = storyDisabled;
@@ -740,7 +770,6 @@ function beginRun(mode: 'STORY' | 'ENDLESS', resume = false): void {
       onlineMatchMode = null;
       window.dispatchEvent(new Event('key-bullet:online-match-exit'));
     }
-    window.alert(publicGameSettings.maintenance_message);
     return;
   }
   if (!adminAssistAccess && onlineMatchMode && !publicGameSettings.online_enabled) {
