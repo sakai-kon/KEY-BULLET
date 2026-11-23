@@ -76,25 +76,6 @@ export async function refreshPublicGameData(supabase: SupabaseClient): Promise<v
       difficulty_override: ['off', 'normal', 'easy'].includes(row.difficulty_override) ? row.difficulty_override : 'off',
     };
     emitPublicSettings(settings);
-    let maintenanceBanner = document.querySelector<HTMLElement>('#kb-global-maintenance-banner');
-    if (settings.maintenance_mode) {
-      if (!maintenanceBanner) {
-        maintenanceBanner = document.createElement('section');
-        maintenanceBanner.id = 'kb-global-maintenance-banner';
-        maintenanceBanner.className = 'kb-global-maintenance';
-        const title = document.createElement('strong');
-        title.textContent = 'MAINTENANCE MODE';
-        const message = document.createElement('p');
-        message.id = 'kb-global-maintenance-message';
-        maintenanceBanner.append(title, message);
-        document.querySelector('.topbar')?.insertAdjacentElement('afterend', maintenanceBanner);
-      }
-      const message = maintenanceBanner.querySelector<HTMLElement>('#kb-global-maintenance-message');
-      if (message) message.textContent = settings.maintenance_message;
-      maintenanceBanner.hidden = false;
-    } else if (maintenanceBanner) {
-      maintenanceBanner.hidden = true;
-    }
   }
 
   if (!promptsResult.error) {
